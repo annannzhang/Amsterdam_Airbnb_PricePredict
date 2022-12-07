@@ -15,7 +15,7 @@ output:
 knitr::opts_chunk$set(echo = TRUE, quiet = TRUE, warning=FALSE)
 ```
 
-Setup
+# Setup
 
 ```{r Load R packages, include=TRUE, echo = TRUE, message = FALSE, warning = FALSE}
 library(tidyverse)
@@ -38,7 +38,7 @@ library(lubridate)
 library(viridis)
 library(stargazer)
 
-
+install.packages("https://github.com/jrnold/ggthemes", repos = NULL, type = "source")
 library(scales)
 library(RColorBrewer)
 library(gridExtra)
@@ -47,6 +47,8 @@ library(readr)
 library(ggcorrplot)
 library(caret)
 
+install.packages(ggthemes)
+install.packages(sjmisc)
 library(sjPlot)
 library(sjmisc)
 library(sjlabelled)
@@ -57,16 +59,18 @@ library(tm)
 library(wordcloud2)
 library(SnowballC)
 options(scipen=999)
+
+source("https://raw.githubusercontent.com/urbanSpatial/Public-Policy-Analytics-Landing/master/functions.r")
 ```
 
 
-format
+## format
 
 ```{r formatting, include=FALSE, echo = TRUE, message = FALSE, warning = FALSE}
 
 palette5 <- c("#FA8072","#9FE2BF","#FF006A","#FE4C35","#FE9900")
 palette4 <- c("#FA8072","#9FE2BF","#FE4C35","#FE9900")
-palette2 <- c("#FA8072","#9FE2BF")
+palette2 <- c("#D4ED91","#9CA998")
 qBr <- function(df, variable, rnd) {
   if (missing(rnd)) {
     as.character(quantile(round(df[[variable]],0),
@@ -221,9 +225,9 @@ html_to_text<-function(url){
 }
 ```
 
-Data Wrangling
+# Data Wrangling
 
-Load data
+## Load data
 
 ```{r load data, include=FALSE, echo = TRUE, message = FALSE, warning = FALSE}
 
@@ -231,8 +235,12 @@ listings <- st_read("listings.csv")
 
 details <- st_read("listings_details.csv")
 
-calendar <- read.csv("calendar.csv")
+#listings <- st_read("/Users/annzhang/Downloads/archive/listings.csv")
+#details <- read.csv("/Users/annzhang/Downloads/archive/listings_details.csv")
+#calendar <- read.csv("/Users/annzhang/Downloads/archive/calendar.csv")
 
+
+calendar <- read.csv("calendar.csv")
 
 
 #large neighborhood
@@ -249,7 +257,7 @@ crowdsensor <- st_read('crowdsensor.json') %>%
   st_transform(st_crs(neighborhood))
 
 metro <- st_read('tram_metro_stops.json') %>% 
-  st_transform(st_crs(neighborhood))sss
+  st_transform(st_crs(neighborhood))
 
 buildingyear <- st_read('buildingyearblock.json') %>% 
   st_transform(st_crs(neighborhood))
@@ -286,7 +294,7 @@ details.sf.raw <- details.sf
 
 
 
-#### Price 
+## Price 
 
 ```{r price panel, include=TRUE, echo = TRUE, message = FALSE, warning = FALSE}
 # Available Calendar
@@ -375,9 +383,9 @@ listing_panel <- listing_panel %>%
 ```
 
 
-#### Occupancy
+## Occupancy
 
-```{r occupancy, fig.width=8, fig.height=3.8, include = TRUE, echo=TRUE, warning=FALSE, message=FALSE}
+```{r occupancy, fig.width=6.4, fig.height=3.8, include = TRUE, echo=TRUE, warning=FALSE, message=FALSE}
 index <- function(x, flag = '0') {
   digit <- floor(log10(length(x))) + 1
   paste(flag, formatC(x, width = digit, flag = '0'), sep = '')
@@ -400,7 +408,10 @@ monthly_occupancy <- occupancy %>%
 
 ggplot(monthly_occupancy, 
        aes(x=month, y=mean_monthly_occupancy, group =1)) +
-  geom_line(size=1, color = "#FE9900")+
+  geom_line(size=1, color = "#FE9900") +
+  labs(title = "Average Monthly Occupancy over 12 Months", subtitle = "Amsterdam, NL") +
+  xlab("Month of the Year") +
+  ylab("Average Occupancy") +
   plotTheme()
 ```
 
@@ -421,17 +432,21 @@ Month_price <- calendar%>%
 
 ggplot(Month_price, 
        aes(x=month, y=mean_monthly_price, group =1)) +
-  geom_line(size=1, color = "#9FE2BF")+
+  geom_line(size=1, color = "#9FE2BF") +
+  labs(title = "Average Price per Month per Airbnb", subtitle = "Amsterdam, NL") +
+  xlab("Month of the Year") +
+  ylab("Average Price") +
   plotTheme()
 ```
 
 
 
 
-### Visualization
+# Data Visualization
 
 
-Plot price per bed
+## Price per Bed
+
 ```{r plot listings, fig.width=6.4, fig.height=6.0, include=TRUE, echo = TRUE, message = FALSE, warning = FALSE}
 details.sf <- 
   details.sf %>% 
@@ -443,16 +458,18 @@ ggplot()+
   geom_sf(data = neighborhood,fill='grey90',color = 'white')+
   geom_sf(data = details.sf, aes(colour=q5(priceBed)),size=.5)+
   scale_color_manual(values = palette5,
-                     labels = qBr(details.sf,'priceBed'),)+
-  labs(title = "Price per bed",
-       subtitle = 'Amsterdam Airbnb, price on 2018-12-6')+
-  mapTheme
+                     labels = qBr(details.sf,'priceBed'),
+                     name = "Price per Bed (Quintile Breaks)")+
+  labs(title = "Price per Bed, Airbnb Price on 2018-12-06",
+       subtitle = 'Amsterdam, NL')+
+  mapTheme()
 
 ```
 
 
-Plot airbnb by smaller neighborhood
-```{r plot the number of airbnb, fig.width=6.4, fig.height=6.0, include=TRUE, echo = TRUE, message = FALSE, warning = FALSE}
+## Airbnb Count Distribution (smaller Neighborhoods)
+
+```{r include=TRUE, echo = TRUE, message = FALSE, warning = FALSE}
 sf_use_s2(FALSE)
 listings.sf<- listings %>% 
   st_as_sf(coords = c( "longitude","latitude"), crs = 4326, agr = "constant")
@@ -473,26 +490,35 @@ neighbo2.count <- listings.sf %>%
   dplyr::select(Buurt, airbnb.number) %>% 
   st_drop_geometry()
 
+```
+
+```{r  plot the number of airbnb, fig.width=6.4, fig.height=6.0, include=TRUE, echo = TRUE, message = FALSE, warning = FALSE}
 neighbor2 <- left_join(neighbor2,neighbo2.count,by="Buurt")
 
 neighbor2 %>% ggplot() + 
       geom_sf(aes(fill = airbnb.number), color = 'white') +
-      scale_fill_gradient(low = '#f3c226', high = palette5[5],
-                          name = "Airbnb Number") +
-      labs(title = "Airbnb Number for Each ZIP") +
-      mapTheme
+      scale_fill_gradient(low = palette5[1], high = palette5[5],
+                          name = "Count of Airbnb") +
+      labs(title = "Count of Airbnb by ZIP Code", subtitle = "Amsterdam, NL; 2018") +
+      mapTheme()
+```
 
+```{r fig.width=6.4, fig.height=6.0, include=TRUE, echo = TRUE, message = FALSE, warning = FALSE}
 ggplot()+
-  geom_sf(data = neighbor2, aes(fill=q5(airbnb.number)),color='transparent')+
+  geom_sf(data = neighbor2, aes(fill=q5(airbnb.number)),color='transparent') +
   scale_fill_manual(values = palette5,
-                     labels = qBr(neighbor2,'airbnb.number'),)+
-  labs(title = "Airbnb Number for Each neighborhood")+
-  mapTheme
+                    labels = qBr(neighbor2,'airbnb.number'), 
+                    name = "Count of Airbnb") +
+  labs(title = "Count of Airbnb by Neighborhood", subtitle = "Amsterdam, NL; 2018") +
+  mapTheme()
 
 
 ```
 
-Feature summary
+
+# Exploration: Features & Amenities
+
+## Feature summary
 ```{r basic features, include=TRUE, echo = TRUE, message = FALSE, warning = FALSE}
 
 table.basic <- details.sf %>% 
@@ -508,40 +534,41 @@ stargazer(as.data.frame(table.basic),
 ```
 
 
-Amenities
+## Amenities
 
 ```{r amenities, include=TRUE, echo = TRUE, message = FALSE, warning = FALSE}
 #pool
 details.sf <- details.sf %>%
-  mutate(pool = ifelse(str_detect(amenities, "Pool"), "Pool", "No Pool"))
+  mutate(pool = ifelse(str_detect(amenities, "Pool"), "1 Pool", "0 No Pool"))
 
 #Paid parking off premises
 details.sf <- details.sf %>%
   mutate(parking = ifelse(str_detect(amenities, "Paid parking off premises"), 
-                          "Parking", "No Parking"))
+                          "1 Parking", "0 No Parking"))
 
 #Indoor fireplace
 details.sf <- details.sf %>%
   mutate(fireplace = ifelse(str_detect(amenities, "Indoor fireplace"), 
-                          "Fireplace", "No Fireplace"))
+                          "1 Fireplace", "0 No Fireplace"))
 
 #Waterfront
 details.sf <- details.sf %>%
   mutate(waterfront = ifelse(str_detect(amenities, "Waterfront"), 
-                          "waterfront", "No waterfront"))
+                          "1 Waterfront", "0 No waterfront"))
 
 #Kitchen
 details.sf <- details.sf %>%
   mutate(kitchen = ifelse(str_detect(amenities, "Kitchen"), 
-                          "kitchen", "No kitchen"))
+                          "1 Kitchen", "0 No kitchen"))
 
 #Air conditioning
 details.sf <- details.sf %>%
   mutate(AC = ifelse(str_detect(amenities, "Air conditioning"), 
-                          "AC", "No AC"))
+                          "1 AC", "0 No AC"))
 ```
 
-Local amenities affect on housing price
+## Amenities x Price
+
 ```{r plot amenities,fig.width=10, fig.height=6.8, include=TRUE, echo = TRUE, message = FALSE, warning = FALSE}
 amenitie_vars <- c('fireplace','waterfront','pool','parking','kitchen','AC')
 plotList <- list()
@@ -562,7 +589,7 @@ plotList[[i]] <-
   plotTheme()
 }
 
-do.call(grid.arrange,c(plotList, ncol = 3, top = "Amenities vs. Price"))
+do.call(grid.arrange,c(plotList, ncol = 3, top = "Average Price with vs. without Amenities"))
 ```
 
 
@@ -576,9 +603,7 @@ details.sf <- details.sf %>%
 ```
 
 
-Neighborhood Effect
-
-
+# Neighborhood Effect
 
 ```{r Neighborhood Effect, include=TRUE, echo = TRUE, message = FALSE, warning = FALSE }
 details.sf.neighbor <- st_intersection(details.sf,zipcode4) %>% 
@@ -598,13 +623,15 @@ listing.sf.neighbor2 <- st_intersection(listings.sf,neighbor2) %>%
   dplyr::select(id, Buurt,Buurt_code) %>% 
   mutate(count=1) %>% st_drop_geometry()
 
+details.sf$id <- as.character(details.sf$id)
+
 detail.sf <- left_join(details.sf,listing.sf.neighbor2, by = "id")
 ```
 
 
-External Features
+# External Features
 
-Distance to metro stations
+## Access to Metro 
 
 
 ```{r Distance to metro, fig.width=6.4, fig.height=6.0, include=TRUE, echo = TRUE, message = FALSE, warning = FALSE}
@@ -634,17 +661,41 @@ listings <- listings%>%
   mutate(distance_to_metro =nn_function(st_c(listings.sf), st_c(metro),1))
 
 ggplot()+
-  geom_sf(data = neighbor2, fill = "grey32", color= "grey40")+
+  geom_sf(data = neighbor2, fill = "light grey", color= "grey")+
   geom_point(data = listings,
              aes(x= longitude, y = latitude, color = distance_to_metro), 
              fill = "transparent", size = 0.86, alpha = 0.6) +
   scale_colour_viridis(direction = -1,
                        discrete = FALSE, 
-                       option = "plasma")+
+                       option = "plasma", name = "Distance to Metro Stations")+
   geom_sf(data = metro, fill="red")+
   ylim(min(listings$latitude), max(listings$latitude))+
   xlim(min(listings$longitude), max(listings$longitude))+
   labs(title="Choropleth Map for Distance to Metro Stations",
        caption = "Figure")+
-  mapTheme
+  mapTheme()
+```
+
+
+## Cultural Historic Exploration Areas
+
+
+
+
+
+
+
+
+# Correlation Matrix
+
+```{r Correlation Matrix, warning = FALSE, message = FALSE, fig.width=10}
+numericVars <- 
+  select_if(st_drop_geometry(Charlotte.Modelling), is.numeric) %>% na.omit()
+ggcorrplot(
+  round(cor(numericVars), 1), 
+  p.mat = cor_pmat(numericVars),
+  colors = c("#B0E0E6", "white", "#B272A6"),
+  type="lower",
+  insig = "blank") +  
+    labs(title = "Correlation Across Numeric Variables", caption = "Fig. 2") 
 ```
