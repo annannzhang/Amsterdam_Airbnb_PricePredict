@@ -71,6 +71,8 @@ source("https://raw.githubusercontent.com/urbanSpatial/Public-Policy-Analytics-L
 palette5 <- c("#FA8072","#9FE2BF","#FF006A","#FE4C35","#FE9900")
 palette4 <- c("#FA8072","#9FE2BF","#FE4C35","#FE9900")
 palette2 <- c("#D4ED91","#9CA998")
+another.palette2 <- c("#D9D919","#E47833")
+
 qBr <- function(df, variable, rnd) {
   if (missing(rnd)) {
     as.character(quantile(round(df[[variable]],0),
@@ -523,7 +525,10 @@ ggplot()+
 
 table.basic <- details.sf %>% 
   st_drop_geometry() %>% 
-  dplyr::select(price ,beds, bedrooms, bathrooms, accommodates)
+  dplyr::select(price, beds, bedrooms, bathrooms, accommodates, property_type) 
+
+table.basic$property_type <- as.factor(table.basic$property_type)
+unique(table.basic$property_type)
 
 stargazer(as.data.frame(table.basic),
           type = "text",
@@ -533,6 +538,64 @@ stargazer(as.data.frame(table.basic),
 
 ```
 
+
+```{r}
+table.basic %>%
+  group_by(beds, bedrooms, bathrooms, property_type, accommodates) %>%
+  summarize (Price = mean(price, na.rm = T)) %>% kable() %>%
+  kable_styling() 
+  
+```
+
+```{r plot basic.features 1,fig.width=10, fig.height=6.8, include=TRUE, echo = TRUE, message = FALSE, warning = FALSE}
+amenitie_vars_pt <- c('property_type')
+plotList.pt <- list()
+
+for (i in amenitie_vars_pt){
+plotList.pt[[i]] <- 
+  details.sf %>%st_drop_geometry() %>% 
+  dplyr::select(price,i) %>%
+  filter(price<500) %>% 
+  gather(Variable, value, -price) %>%
+    ggplot(aes(value, price, fill=value)) + 
+      #geom_bar(position = "dodge", stat = "summary", fun.y = "mean") + 
+      geom_boxplot()+
+      labs(x="value", y="price", 
+           title = i) +
+      theme(legend.position = "none")+
+  plotTheme()
+}
+
+do.call(grid.arrange,c(plotList.pt, top = "Average Price with vs. without Amenities"))
+```
+
+```{r}
+
+
+
+```
+
+```{r plot basic.features 2,fig.width=10, fig.height=6.8, include=TRUE, echo = TRUE, message = FALSE, warning = FALSE}
+amenitie_vars_1 <- c('beds','bedrooms','bathrooms')
+plotList.1 <- list()
+
+for (i in amenitie_vars_1){
+plotList.1[[i]] <- 
+  details.sf %>%st_drop_geometry() %>% 
+  dplyr::select(price,i) %>%
+  filter(price<500) %>% 
+  gather(Variable, value, -price) %>%
+    ggplot(aes(value, price, fill=value)) + 
+      #geom_bar(position = "dodge", stat = "summary", fun.y = "mean") + 
+      geom_boxplot()+
+      labs(x="value", y="price", 
+           title = i) +
+      theme(legend.position = "none")+
+  plotTheme()
+}
+
+do.call(grid.arrange,c(plotList.1, ncol = 3, top = "Average Price with vs. without Amenities"))
+```
 
 ## Amenities
 
@@ -591,7 +654,6 @@ plotList[[i]] <-
 
 do.call(grid.arrange,c(plotList, ncol = 3, top = "Average Price with vs. without Amenities"))
 ```
-
 
 
 ```{r number of amenties listed, include=FALSE, echo = TRUE, message = FALSE, warning = FALSE}
@@ -680,6 +742,23 @@ ggplot()+
 ## Cultural Historic Exploration Areas
 
 
+```{r}
+
+CHE <- st_read('Cultural Historic Exploration.csv') %>% 
+  dplyr::select(OBJECTNUMMER, LAT, LNG) %>%
+  st_as_sf(coords = c("LNG", "LAT"), crs = 	st_crs(neighborhood), agr = "constant") %>%
+  st_transform(st_crs(neighborhood)) %>%
+  filter(!st_is_empty(.))
+
+plot(CHE)
+ggplot()+
+  geom_sf(data = neighborhood, fill='grey90', color = 'white')+
+  geom_sf(data = CHE, color='Purple') +
+  labs(title = "Cultural Historic Exploration Areas",
+       subtitle = 'Amsterdam, NL')+
+  mapTheme()
+
+```
 
 
 
@@ -688,9 +767,20 @@ ggplot()+
 
 # Correlation Matrix
 
+
+```{r Clean Data}
+
+details.clean <-
+  details.sf %>%
+  dplyr::select(id, property_type, room_type, accommodates, bathrooms, bedrooms, beds, bed_type, minimum_nights, number_of_reviews, review_scores_rating, instant_bookable, availability_30, amenities.number, dist.metro)
+
+
+```
+
+
 ```{r Correlation Matrix, warning = FALSE, message = FALSE, fig.width=10}
 numericVars <- 
-  select_if(st_drop_geometry(Charlotte.Modelling), is.numeric) %>% na.omit()
+  select_if(st_drop_geometry(details.sf), is.numeric) %>% na.omit()
 ggcorrplot(
   round(cor(numericVars), 1), 
   p.mat = cor_pmat(numericVars),
