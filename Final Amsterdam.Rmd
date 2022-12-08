@@ -67,7 +67,7 @@ source("https://raw.githubusercontent.com/urbanSpatial/Public-Policy-Analytics-L
 ## format
 
 ```{r formatting, include=FALSE, echo = TRUE, message = FALSE, warning = FALSE}
-
+ 
 palette5 <- c("#FA8072","#9FE2BF","#FF006A","#FE4C35","#FE9900")
 palette4 <- c("#FA8072","#9FE2BF","#FE4C35","#FE9900")
 palette2 <- c("#D4ED91","#9CA998")
@@ -237,9 +237,9 @@ listings <- st_read("listings.csv")
 
 details <- st_read("listings_details.csv")
 
-#listings <- st_read("/Users/annzhang/Downloads/archive/listings.csv")
-#details <- read.csv("/Users/annzhang/Downloads/archive/listings_details.csv")
-#calendar <- read.csv("/Users/annzhang/Downloads/archive/calendar.csv")
+listings <- st_read("/Users/annzhang/Downloads/archive/listings.csv")
+details <- read.csv("/Users/annzhang/Downloads/archive/listings_details.csv")
+calendar <- read.csv("/Users/annzhang/Downloads/archive/calendar.csv")
 
 
 calendar <- read.csv("calendar.csv")
