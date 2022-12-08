@@ -231,7 +231,7 @@ html_to_text<-function(url){
 
 ## Load data
 
-```{r load data, include=FALSE, echo = TRUE, message = FALSE, warning = FALSE}
+```{r load data, include=FALSE, echo = TRUE, message = FALSE, warning = FALSE, results='hide'}
 
 listings <- st_read("listings.csv")
 
@@ -569,11 +569,6 @@ plotList.pt[[i]] <-
 do.call(grid.arrange,c(plotList.pt, top = "Average Price with vs. without Amenities"))
 ```
 
-```{r}
-
-
-
-```
 
 ```{r plot basic.features 2,fig.width=10, fig.height=6.8, include=TRUE, echo = TRUE, message = FALSE, warning = FALSE}
 amenitie_vars_1 <- c('beds','bedrooms','bathrooms')
@@ -595,6 +590,31 @@ plotList.1[[i]] <-
 }
 
 do.call(grid.arrange,c(plotList.1, ncol = 3, top = "Average Price with vs. without Amenities"))
+
+bed <- details.sf %>%
+  dplyr::select(beds, bedrooms, price, property_type) %>%
+  st_drop_geometry() %>%
+  na.omit() %>%
+  group_by(property_type, bedrooms) %>%
+  summarize(Price_Per_Bed = mean(price/beds, na.rm=T))
+
+bed %>%
+  ggplot() +
+  geom_bar() + 
+  facet_wrap(~)
+
+
+
+#gather(Variable, bedrooms, property_type) %>%
+  ggplot(aes(Variable, bedrooms, Value, fill = property_type)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  facet_wrap(~Variable, scales = "free", ncol=5) +
+  theme(strip.text.x = element_text(size = 3)) +
+  scale_fill_manual(values = c("#FFDD94", "#CCABDB")) +
+  labs(title = "Indicator Differences Across Time and Space", subtitle = "San Diego, CA; 2009 vs. 2019", caption = "Figure 3") +
+  plotTheme() + theme(legend.position="bottom")
+
+
 ```
 
 ## Amenities
@@ -772,7 +792,9 @@ ggplot()+
 
 details.clean <-
   details.sf %>%
-  dplyr::select(id, property_type, room_type, accommodates, bathrooms, bedrooms, beds, bed_type, minimum_nights, number_of_reviews, review_scores_rating, instant_bookable, availability_30, amenities.number, dist.metro, price)
+  dplyr::select(id, property_type, room_type, accommodates, bathrooms, bedrooms, beds, bed_type, minimum_nights, number_of_reviews, review_scores_rating, instant_bookable, availability_30, amenities.number, dist.metro, price, Postcode4, parking, fireplace, waterfront, kitchen, pool, AC) %>%
+  na.omit %>%
+  st_drop_geometry()
 
 
 ```
@@ -799,10 +821,9 @@ Factors:
 ```{r}
 
 reg.1 <- 
-  lm(price ~ ., data = as.data.frame(details.clean) %>% 
-  dplyr::select(-geometry, -beds))
+  lm(price ~ ., data = details.clean %>% dplyr::select(price, bedrooms, bathrooms,  amenities.number, Postcode4, room_type, accommodates, minimum_nights, pool, waterfront, parking, fireplace, pool, availability_30, AC, bed_type, property_type, instant_bookable, number_of_reviews, review_scores_rating))
   
-
+summary(reg.1)
 
 ```
 
