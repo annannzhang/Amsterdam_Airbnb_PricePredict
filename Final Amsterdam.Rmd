@@ -821,7 +821,7 @@ Factors:
 ```{r}
 
 reg.1 <- 
-  lm(price ~ ., data = details.clean %>% dplyr::select(price, bedrooms, bathrooms,  amenities.number, Postcode4, room_type, accommodates, minimum_nights, pool, waterfront, parking, fireplace, pool, availability_30, AC, bed_type, property_type, instant_bookable, number_of_reviews, review_scores_rating))
+  lm(price ~ ., data = details.clean %>% dplyr::select(price, bedrooms, bathrooms,  amenities.number, Postcode4, room_type, accommodates, minimum_nights, pool, waterfront, parking, fireplace, pool, availability_30, AC, bed_type, property_type, instant_bookable, number_of_reviews, review_scores_rating, dist.metro))
   
 summary(reg.1)
 
