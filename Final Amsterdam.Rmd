@@ -770,6 +770,25 @@ CHE <- st_read('Cultural Historic Exploration.csv') %>%
   st_transform(st_crs(neighborhood)) %>%
   filter(!st_is_empty(.))
 
+details.buffer <-
+   st_buffer(details.sf$geometry, 805) %>%
+  st_sf()
+
+details.sf <-
+  details.sf %>%
+  mutate(CHE_Count = count(CHE[details.buffer,]))
+
+SD_Buffers <- 
+  rbind(
+    st_buffer(SD_Trolley$geometry, 805) %>%
+      st_sf() %>%
+      mutate(Legend = "Buffer") %>%
+      dplyr::select(Legend),
+    st_union(st_buffer(SD_Trolley$geometry, 805)) %>%
+      st_sf() %>%
+      mutate(Legend = "Unioned Buffer"))
+
+
 plot(CHE)
 ggplot()+
   geom_sf(data = neighborhood, fill='grey90', color = 'white')+
