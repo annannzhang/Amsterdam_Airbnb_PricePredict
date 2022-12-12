@@ -15,7 +15,7 @@ output:
 knitr::opts_chunk$set(echo = TRUE, quiet = TRUE, warning=FALSE)
 ```
 
-# Setup
+Setup
 
 ```{r Load R packages, include=TRUE, echo = TRUE, message = FALSE, warning = FALSE}
 library(tidyverse)
@@ -38,7 +38,7 @@ library(lubridate)
 library(viridis)
 library(stargazer)
 
-install.packages("https://github.com/jrnold/ggthemes", repos = NULL, type = "source")
+
 library(scales)
 library(RColorBrewer)
 library(gridExtra)
@@ -47,8 +47,6 @@ library(readr)
 library(ggcorrplot)
 library(caret)
 
-install.packages(ggthemes)
-install.packages(sjmisc)
 library(sjPlot)
 library(sjmisc)
 library(sjlabelled)
@@ -59,20 +57,16 @@ library(tm)
 library(wordcloud2)
 library(SnowballC)
 options(scipen=999)
-
-source("https://raw.githubusercontent.com/urbanSpatial/Public-Policy-Analytics-Landing/master/functions.r")
 ```
 
 
-## format
+format
 
 ```{r formatting, include=FALSE, echo = TRUE, message = FALSE, warning = FALSE}
- 
+
 palette5 <- c("#FA8072","#9FE2BF","#FF006A","#FE4C35","#FE9900")
 palette4 <- c("#FA8072","#9FE2BF","#FE4C35","#FE9900")
-palette2 <- c("#D4ED91","#9CA998")
-another.palette2 <- c("#D9D919","#E47833")
-
+palette2 <- c("#FA8072","#9FE2BF")
 qBr <- function(df, variable, rnd) {
   if (missing(rnd)) {
     as.character(quantile(round(df[[variable]],0),
@@ -227,22 +221,18 @@ html_to_text<-function(url){
 }
 ```
 
-# Data Wrangling
+Data Wrangling
 
-## Load data
+Load data
 
-```{r load data, include=FALSE, echo = TRUE, message = FALSE, warning = FALSE, results='hide'}
+```{r load data, include=FALSE, echo = TRUE, message = FALSE, warning = FALSE}
 
 listings <- st_read("listings.csv")
 
 details <- st_read("listings_details.csv")
 
-listings <- st_read("/Users/annzhang/Downloads/archive/listings.csv")
-details <- read.csv("/Users/annzhang/Downloads/archive/listings_details.csv")
-calendar <- read.csv("/Users/annzhang/Downloads/archive/calendar.csv")
-
-
 calendar <- read.csv("calendar.csv")
+
 
 
 #large neighborhood
@@ -296,7 +286,7 @@ details.sf.raw <- details.sf
 
 
 
-## Price 
+#### Price 
 
 ```{r price panel, include=TRUE, echo = TRUE, message = FALSE, warning = FALSE}
 # Available Calendar
@@ -385,9 +375,9 @@ listing_panel <- listing_panel %>%
 ```
 
 
-## Occupancy
+#### Occupancy
 
-```{r occupancy, fig.width=6.4, fig.height=3.8, include = TRUE, echo=TRUE, warning=FALSE, message=FALSE}
+```{r occupancy, fig.width=8, fig.height=3.8, include = TRUE, echo=TRUE, warning=FALSE, message=FALSE}
 index <- function(x, flag = '0') {
   digit <- floor(log10(length(x))) + 1
   paste(flag, formatC(x, width = digit, flag = '0'), sep = '')
@@ -410,10 +400,7 @@ monthly_occupancy <- occupancy %>%
 
 ggplot(monthly_occupancy, 
        aes(x=month, y=mean_monthly_occupancy, group =1)) +
-  geom_line(size=1, color = "#FE9900") +
-  labs(title = "Average Monthly Occupancy over 12 Months", subtitle = "Amsterdam, NL") +
-  xlab("Month of the Year") +
-  ylab("Average Occupancy") +
+  geom_line(size=1, color = "#FE9900")+
   plotTheme()
 ```
 
@@ -434,21 +421,17 @@ Month_price <- calendar%>%
 
 ggplot(Month_price, 
        aes(x=month, y=mean_monthly_price, group =1)) +
-  geom_line(size=1, color = "#9FE2BF") +
-  labs(title = "Average Price per Month per Airbnb", subtitle = "Amsterdam, NL") +
-  xlab("Month of the Year") +
-  ylab("Average Price") +
+  geom_line(size=1, color = "#9FE2BF")+
   plotTheme()
 ```
 
 
 
 
-# Data Visualization
+### Visualization
 
 
-## Price per Bed
-
+Plot price per bed
 ```{r plot listings, fig.width=6.4, fig.height=6.0, include=TRUE, echo = TRUE, message = FALSE, warning = FALSE}
 details.sf <- 
   details.sf %>% 
@@ -460,18 +443,17 @@ ggplot()+
   geom_sf(data = neighborhood,fill='grey90',color = 'white')+
   geom_sf(data = details.sf, aes(colour=q5(priceBed)),size=.5)+
   scale_color_manual(values = palette5,
-                     labels = qBr(details.sf,'priceBed'),
-                     name = "Price per Bed (Quintile Breaks)")+
-  labs(title = "Price per Bed, Airbnb Price on 2018-12-06",
-       subtitle = 'Amsterdam, NL')+
-  mapTheme()
+                     labels = qBr(details.sf,'priceBed'),)+
+  labs(title = "Price per bed"#,
+       #subtitle = 'Amsterdam Airbnb, price on 2018-12-6'
+       )+
+  mapTheme
 
 ```
 
 
-## Airbnb Count Distribution (smaller Neighborhoods)
-
-```{r include=TRUE, echo = TRUE, message = FALSE, warning = FALSE}
+Plot airbnb by smaller neighborhood
+```{r plot the number of airbnb, fig.width=6.4, fig.height=6.0, include=TRUE, echo = TRUE, message = FALSE, warning = FALSE}
 sf_use_s2(FALSE)
 listings.sf<- listings %>% 
   st_as_sf(coords = c( "longitude","latitude"), crs = 4326, agr = "constant")
@@ -492,43 +474,31 @@ neighbo2.count <- listings.sf %>%
   dplyr::select(Buurt, airbnb.number) %>% 
   st_drop_geometry()
 
-```
-
-```{r  plot the number of airbnb, fig.width=6.4, fig.height=6.0, include=TRUE, echo = TRUE, message = FALSE, warning = FALSE}
 neighbor2 <- left_join(neighbor2,neighbo2.count,by="Buurt")
 
 neighbor2 %>% ggplot() + 
       geom_sf(aes(fill = airbnb.number), color = 'white') +
-      scale_fill_gradient(low = palette5[1], high = palette5[5],
-                          name = "Count of Airbnb") +
-      labs(title = "Count of Airbnb by ZIP Code", subtitle = "Amsterdam, NL; 2018") +
-      mapTheme()
-```
+      scale_fill_gradient(low = '#f3c226', high = palette5[5],
+                          name = "Airbnb Number") +
+      labs(title = "Airbnb Number for Each ZIP") +
+      mapTheme
 
-```{r fig.width=6.4, fig.height=6.0, include=TRUE, echo = TRUE, message = FALSE, warning = FALSE}
 ggplot()+
-  geom_sf(data = neighbor2, aes(fill=q5(airbnb.number)),color='transparent') +
+  geom_sf(data = neighbor2, aes(fill=q5(airbnb.number)),color='transparent')+
   scale_fill_manual(values = palette5,
-                    labels = qBr(neighbor2,'airbnb.number'), 
-                    name = "Count of Airbnb") +
-  labs(title = "Count of Airbnb by Neighborhood", subtitle = "Amsterdam, NL; 2018") +
-  mapTheme()
+                     labels = qBr(neighbor2,'airbnb.number'),)+
+  labs(title = "Airbnb Number for Each neighborhood")+
+  mapTheme
 
 
 ```
 
-
-# Exploration: Features & Amenities
-
-## Feature summary
+Feature summary
 ```{r basic features, include=TRUE, echo = TRUE, message = FALSE, warning = FALSE}
 
 table.basic <- details.sf %>% 
   st_drop_geometry() %>% 
-  dplyr::select(price, beds, bedrooms, bathrooms, accommodates, property_type) 
-
-table.basic$property_type <- as.factor(table.basic$property_type)
-unique(table.basic$property_type)
+  dplyr::select(price ,beds, bedrooms, bathrooms, accommodates)
 
 stargazer(as.data.frame(table.basic),
           type = "text",
@@ -539,119 +509,40 @@ stargazer(as.data.frame(table.basic),
 ```
 
 
-```{r}
-table.basic %>%
-  group_by(beds, bedrooms, bathrooms, property_type, accommodates) %>%
-  summarize (Price = mean(price, na.rm = T)) %>% kable() %>%
-  kable_styling() 
-  
-```
-
-```{r plot basic.features 1,fig.width=10, fig.height=6.8, include=TRUE, echo = TRUE, message = FALSE, warning = FALSE}
-amenitie_vars_pt <- c('property_type')
-plotList.pt <- list()
-
-for (i in amenitie_vars_pt){
-plotList.pt[[i]] <- 
-  details.sf %>%st_drop_geometry() %>% 
-  dplyr::select(price,i) %>%
-  filter(price<500) %>% 
-  gather(Variable, value, -price) %>%
-    ggplot(aes(value, price, fill=value)) + 
-      #geom_bar(position = "dodge", stat = "summary", fun.y = "mean") + 
-      geom_boxplot()+
-      labs(x="value", y="price", 
-           title = i) +
-      theme(legend.position = "none")+
-  plotTheme()
-}
-
-do.call(grid.arrange,c(plotList.pt, top = "Average Price with vs. without Amenities"))
-```
-
-
-```{r plot basic.features 2,fig.width=10, fig.height=6.8, include=TRUE, echo = TRUE, message = FALSE, warning = FALSE}
-amenitie_vars_1 <- c('beds','bedrooms','bathrooms')
-plotList.1 <- list()
-
-for (i in amenitie_vars_1){
-plotList.1[[i]] <- 
-  details.sf %>%st_drop_geometry() %>% 
-  dplyr::select(price,i) %>%
-  filter(price<500) %>% 
-  gather(Variable, value, -price) %>%
-    ggplot(aes(value, price, fill=value)) + 
-      #geom_bar(position = "dodge", stat = "summary", fun.y = "mean") + 
-      geom_boxplot()+
-      labs(x="value", y="price", 
-           title = i) +
-      theme(legend.position = "none")+
-  plotTheme()
-}
-
-do.call(grid.arrange,c(plotList.1, ncol = 3, top = "Average Price with vs. without Amenities"))
-
-bed <- details.sf %>%
-  dplyr::select(beds, bedrooms, price, property_type) %>%
-  st_drop_geometry() %>%
-  na.omit() %>%
-  group_by(property_type, bedrooms) %>%
-  summarize(Price_Per_Bed = mean(price/beds, na.rm=T))
-
-bed %>%
-  ggplot() +
-  geom_bar() + 
-  facet_wrap(~)
-
-
-
-#gather(Variable, bedrooms, property_type) %>%
-  ggplot(aes(Variable, bedrooms, Value, fill = property_type)) +
-  geom_bar(stat = "identity", position = "dodge") +
-  facet_wrap(~Variable, scales = "free", ncol=5) +
-  theme(strip.text.x = element_text(size = 3)) +
-  scale_fill_manual(values = c("#FFDD94", "#CCABDB")) +
-  labs(title = "Indicator Differences Across Time and Space", subtitle = "San Diego, CA; 2009 vs. 2019", caption = "Figure 3") +
-  plotTheme() + theme(legend.position="bottom")
-
-
-```
-
-## Amenities
+Amenities
 
 ```{r amenities, include=TRUE, echo = TRUE, message = FALSE, warning = FALSE}
 #pool
 details.sf <- details.sf %>%
-  mutate(pool = ifelse(str_detect(amenities, "Pool"), "1 Pool", "0 No Pool"))
+  mutate(pool = ifelse(str_detect(amenities, "Pool"), "Pool", "No Pool"))
 
 #Paid parking off premises
 details.sf <- details.sf %>%
   mutate(parking = ifelse(str_detect(amenities, "Paid parking off premises"), 
-                          "1 Parking", "0 No Parking"))
+                          "Parking", "No Parking"))
 
 #Indoor fireplace
 details.sf <- details.sf %>%
   mutate(fireplace = ifelse(str_detect(amenities, "Indoor fireplace"), 
-                          "1 Fireplace", "0 No Fireplace"))
+                          "Fireplace", "No Fireplace"))
 
 #Waterfront
 details.sf <- details.sf %>%
   mutate(waterfront = ifelse(str_detect(amenities, "Waterfront"), 
-                          "1 Waterfront", "0 No waterfront"))
+                          "waterfront", "No waterfront"))
 
 #Kitchen
 details.sf <- details.sf %>%
   mutate(kitchen = ifelse(str_detect(amenities, "Kitchen"), 
-                          "1 Kitchen", "0 No kitchen"))
+                          "kitchen", "No kitchen"))
 
 #Air conditioning
 details.sf <- details.sf %>%
   mutate(AC = ifelse(str_detect(amenities, "Air conditioning"), 
-                          "1 AC", "0 No AC"))
+                          "AC", "No AC"))
 ```
 
-## Amenities x Price
-
+Local amenities affect on housing price
 ```{r plot amenities,fig.width=10, fig.height=6.8, include=TRUE, echo = TRUE, message = FALSE, warning = FALSE}
 amenitie_vars <- c('fireplace','waterfront','pool','parking','kitchen','AC')
 plotList <- list()
@@ -672,8 +563,9 @@ plotList[[i]] <-
   plotTheme()
 }
 
-do.call(grid.arrange,c(plotList, ncol = 3, top = "Average Price with vs. without Amenities"))
+do.call(grid.arrange,c(plotList, ncol = 3, top = "Amenities vs. Price"))
 ```
+
 
 
 ```{r number of amenties listed, include=FALSE, echo = TRUE, message = FALSE, warning = FALSE}
@@ -685,7 +577,9 @@ details.sf <- details.sf %>%
 ```
 
 
-# Neighborhood Effect
+Neighborhood Effect
+
+
 
 ```{r Neighborhood Effect, include=TRUE, echo = TRUE, message = FALSE, warning = FALSE }
 details.sf.neighbor <- st_intersection(details.sf,zipcode4) %>% 
@@ -705,15 +599,13 @@ listing.sf.neighbor2 <- st_intersection(listings.sf,neighbor2) %>%
   dplyr::select(id, Buurt,Buurt_code) %>% 
   mutate(count=1) %>% st_drop_geometry()
 
-details.sf$id <- as.character(details.sf$id)
-
 detail.sf <- left_join(details.sf,listing.sf.neighbor2, by = "id")
 ```
 
 
-# External Features
+External Features
 
-## Access to Metro 
+Distance to metro stations
 
 
 ```{r Distance to metro, fig.width=6.4, fig.height=6.0, include=TRUE, echo = TRUE, message = FALSE, warning = FALSE}
@@ -743,114 +635,378 @@ listings <- listings%>%
   mutate(distance_to_metro =nn_function(st_c(listings.sf), st_c(metro),1))
 
 ggplot()+
-  geom_sf(data = neighbor2, fill = "light grey", color= "grey")+
+  geom_sf(data = neighbor2, fill = "grey32", color= "grey40")+
   geom_point(data = listings,
              aes(x= longitude, y = latitude, color = distance_to_metro), 
              fill = "transparent", size = 0.86, alpha = 0.6) +
   scale_colour_viridis(direction = -1,
                        discrete = FALSE, 
-                       option = "plasma", name = "Distance to Metro Stations")+
+                       option = "plasma")+
   geom_sf(data = metro, fill="red")+
   ylim(min(listings$latitude), max(listings$latitude))+
   xlim(min(listings$longitude), max(listings$longitude))+
   labs(title="Choropleth Map for Distance to Metro Stations",
        caption = "Figure")+
-  mapTheme()
-```
-
-
-## Cultural Historic Exploration Areas
-
-
-```{r}
-
-CHE <- st_read('Cultural Historic Exploration.csv') %>% 
-  dplyr::select(OBJECTNUMMER, LAT, LNG) %>%
-  st_as_sf(coords = c("LNG", "LAT"), crs = 	st_crs(neighborhood), agr = "constant") %>%
-  st_transform(st_crs(neighborhood)) %>%
-  filter(!st_is_empty(.))
-
-details.buffer <-
-   st_buffer(details.sf$geometry, 805) %>%
-  st_sf()
-
-details.sf <-
-  details.sf %>%
-  mutate(CHE_Count = count(CHE[details.buffer,]))
-
-SD_Buffers <- 
-  rbind(
-    st_buffer(SD_Trolley$geometry, 805) %>%
-      st_sf() %>%
-      mutate(Legend = "Buffer") %>%
-      dplyr::select(Legend),
-    st_union(st_buffer(SD_Trolley$geometry, 805)) %>%
-      st_sf() %>%
-      mutate(Legend = "Unioned Buffer"))
-
-
-plot(CHE)
-ggplot()+
-  geom_sf(data = neighborhood, fill='grey90', color = 'white')+
-  geom_sf(data = CHE, color='Purple') +
-  labs(title = "Cultural Historic Exploration Areas",
-       subtitle = 'Amsterdam, NL')+
-  mapTheme()
-
+  mapTheme
 ```
 
 
 
+```{r outside attractions,  include=TRUE, echo = TRUE, message = FALSE, warning = FALSE}
+
+
+unesco <-
+  #st_read('UnescoWerelderfgoed_region.shp') %>%
+  st_read('geojson_lnglat.json') %>%
+  st_transform(st_crs(neighborhood))
+
+parks <- st_read('parks.json') %>% 
+  st_transform(st_crs(neighborhood))
+
+
+attraction <- st_read('amsterdam-attraction.csv') %>% 
+  filter(lat != 'attraction')
+attraction <- st_as_sf(attraction,coords = c('lng','lat'),crs = 4326) %>% 
+  st_transform(st_crs(neighborhood))
+
+parks <- attraction %>% 
+  filter(subCategory == 'Park')
+
+museum <- attraction %>% 
+  filter(subCategory == 'Museum')
 
 
 
-# Correlation Matrix
+```
+
+```{r outside amenities , include=TRUE, echo = TRUE, message = FALSE, warning = FALSE}
+
+#supermarkets
+supermarkets <- getbb('Amsterdam') %>% 
+  opq() %>% 
+  add_osm_feature('shop','supermarket') %>% 
+  osmdata_sf() 
+supermarkets <- supermarkets$osm_points %>% 
+  dplyr::select(geometry)%>% 
+  st_transform('ESRI:102013')%>% 
+  dplyr::select(geometry) %>% 
+  mutate(Legend = "supermarkets")
+
+convenienceshop <- getbb('Amsterdam') %>% 
+  opq() %>% 
+  add_osm_feature('shop','convenience') %>% 
+  osmdata_sf() 
+convenienceshop <- convenienceshop$osm_points %>% 
+  dplyr::select(geometry)%>% 
+  st_transform('ESRI:102013')%>% 
+  dplyr::select(geometry) %>% 
+  mutate(Legend = "convenienceshop")
+
+mall <- getbb('Amsterdam') %>% 
+  opq() %>% 
+  add_osm_feature('shop','mall') %>% 
+  osmdata_sf() 
+mall<- mall$osm_points %>% 
+  dplyr::select(geometry)%>% 
+  st_transform('ESRI:102013') %>% 
+  dplyr::select(geometry) %>% 
+  mutate(Legend = "mall")
 
 
-```{r Clean Data}
+attraction <- st_as_sf(attraction,coords = c('lng','lat'),crs = 4326) %>% 
+  st_transform('ESRI:102013')
 
-details.clean <-
-  details.sf %>%
-  dplyr::select(id, property_type, room_type, accommodates, bathrooms, bedrooms, beds, bed_type, minimum_nights, number_of_reviews, review_scores_rating, instant_bookable, availability_30, amenities.number, dist.metro, price, Postcode4, parking, fireplace, waterfront, kitchen, pool, AC) %>%
-  na.omit %>%
+
+plaza <- attraction %>% 
+  filter(subCategory == 'Plaza') 
+
+
+beach <- attraction %>% 
+  filter(subCategory == 'Beach') 
+
+
+nightclub <- attraction %>% 
+  filter(subCategory == 'Nightclub') 
+
+```
+
+amenities and attractions
+
+```{r calculate distance to amenities & attractions , include=TRUE, echo = TRUE, message = FALSE, warning = FALSE}
+details.sf <- details.sf%>%
+  mutate(dist.mall =nn_function(st_coordinates(details.sf.c),st_coordinates(mall),1))
+
+details.sf <- details.sf%>%
+  mutate(dist.supermarkets =nn_function(st_coordinates(details.sf.c),
+                                        st_coordinates(supermarkets),1))
+
+details.sf <- details.sf%>%
+  mutate(dist.convenienceshop =nn_function(st_coordinates(details.sf.c),
+                                        st_coordinates(convenienceshop),1))
+
+details.sf <- details.sf%>%
+  mutate(dist.museum =nn_function(st_coordinates(details.sf.c),
+                                        st_coordinates(museum),1))
+
+details.sf <- details.sf%>%
+  mutate(dist.plaza =nn_function(st_coordinates(details.sf.c),
+                                        st_coordinates(plaza),1))
+
+details.sf <- details.sf%>%
+  mutate(dist.nightclub =nn_function(st_coordinates(details.sf.c),
+                                        st_coordinates(nightclub),1))
+
+details.sf <- details.sf%>%
+  mutate(dist.beach =nn_function(st_coordinates(details.sf.c),
+                                        st_coordinates(beach),1))
+
+details.sf <- details.sf%>%
+  mutate(dist.parks =nn_function(st_coordinates(details.sf.c),
+                                        st_coordinates(parks),1))
+
+```
+
+
+
+```{r summary of distance features, include=TRUE, echo = TRUE, message = FALSE, warning = FALSE}
+
+table.distance <- details.sf %>% 
+  st_drop_geometry() %>% 
+  dplyr::select(c("dist.museum","dist.plaza","dist.nightclub","dist.beach",
+                  "dist.metro","dist.supermarkets"))
+
+stargazer(as.data.frame(table.distance),
+          type = "text",
+          title ="Table 2. Summary of all Distance Features",
+          single.row = TRUE,
+          out.header = TRUE)
+
+```
+
+
+```{r UNESCO, include=TRUE, echo = TRUE, message = FALSE, warning = FALSE}
+# within UNESCO buffer or not
+unesco_buffer <- st_union(unesco)
+unesco_buffer <- st_as_sf(unesco_buffer)
+
+details.sf.unesco <- st_intersection(details.sf,unesco_buffer) %>% 
+  dplyr::select(id) %>% 
+  mutate(Unesco = 'within') %>% 
   st_drop_geometry()
 
+details.sf <- left_join(details.sf,details.sf.unesco,by='id')
+details.sf$Unesco <- tidyr::replace_na(details.sf$Unesco,'outside')
 
 ```
 
 
-```{r Correlation Matrix, warning = FALSE, message = FALSE, fig.width=10}
+#### Hotspots
+
+
+
+```{r Airbnb hotspot, fig.width=6.4, fig.height=6.0, include=TRUE, echo = TRUE, message = FALSE, warning = FALSE}
+#create fishnet
+
+amsterdam.boundary <- st_union(neighborhood) %>% st_transform('ESRI:102013')
+
+fishnet <- 
+  st_make_grid(amsterdam.boundary, cellsize = 300) %>%
+  st_sf() %>%
+  mutate(uniqueID = rownames(.))
+
+fishnet <- fishnet %>% 
+  mutate(uniqueID = rownames(.))
+
+fishnet.count <- st_intersection(listings.sf,fishnet) %>% 
+  mutate(count = 1) %>% 
+  st_drop_geometry() %>% 
+  dplyr::select(uniqueID, count) %>% 
+  group_by(uniqueID) %>% 
+  summarise(countairbnb = sum(count))
+
+airbnb_net <- 
+  dplyr::select(listings.sf) %>% 
+  mutate(countairbnb = 1) %>% 
+  aggregate(., fishnet, sum)
+
+airbnb_net <- airbnb_net %>% 
+  mutate(countairbnb = tidyr::replace_na(countairbnb,0),
+         uniqueID = row.names(.))
+
+
+ggplot() +
+  geom_sf(data = airbnb_net, aes(fill = countairbnb), color = NA) +
+  scale_fill_viridis() +
+  labs(title = "Count of airbnb for the fishnet") +
+  mapTheme
+```
+
+
+```{r occupancy join, include=TRUE, echo = TRUE, message = FALSE, warning = FALSE}
+occupancy3 <- occupancy %>%
+  dplyr::rename(id = listing_id) 
+  
+occupancy3 <-  
+  left_join(occupancy3, st_drop_geometry(details.sf), by = "id")
+```
+
+```{r price by month, include=TRUE, echo = TRUE, message = FALSE, warning = FALSE}
+listing_panel <- listing_panel%>%
+   dplyr::rename(id = listing_id)
+
+revenue_panel <- merge(occupancy3,listing_panel[c("id","month","each_month_price")],by=c("id","month")) %>%
+  mutate(revenue = each_month_price*monthly_occupancy)
+```
+
+```{r correlation matrix, include=TRUE, echo = TRUE, message = FALSE, warning = FALSE}
+annualrevenue <- revenue_panel %>%
+  group_by(id) %>%
+  summarise(annual_revenue = sum(revenue))
+
+
+annualrevenue<- left_join(details.sf, annualrevenue,by="id")%>%
+    filter(!id %in% no_price)%>%
+    mutate(bathrooms = as.numeric(bathrooms),
+         bedrooms = as.numeric(bedrooms))
+```
+
+```{r numeric correlation matrix, fig.width=6.4, fig.height=6.0, include=TRUE, echo = TRUE, message = FALSE, warning = FALSE}
 numericVars <- 
-  select_if(st_drop_geometry(details.clean), is.numeric) %>% na.omit()
+  select_if(st_drop_geometry(annualrevenue), is.numeric) %>% na.omit() %>% 
+  dplyr::select(annual_revenue,price,beds, bedrooms, bathrooms, 
+                              minimum_nights,dist.museum,dist.supermarkets,
+                              dist.metro,dist.plaza, dist.nightclub,
+                              dist.beach, dist.parks,
+                              amenities.number)
+
+
 ggcorrplot(
   round(cor(numericVars), 1), 
   p.mat = cor_pmat(numericVars),
-  colors = c("#B0E0E6", "white", "#B272A6"),
+  colors = c("#4757a2", "white", "#E46B45"),
   type="lower",
   insig = "blank") +  
-    labs(title = "Correlation Across Numeric Variables") 
+    labs(title = "Correlation across numeric variables") 
 ```
 
+```{r calculate annual revenue , include=TRUE, echo = TRUE, message = FALSE, warning = FALSE}
+annualrevenue <- revenue_panel %>%
+  group_by(id) %>%
+  summarise(annual_revenue = sum(revenue))
+
+annualrevenue<- left_join(details.sf, annualrevenue,by="id")%>%
+    filter(!id %in% no_price)
+```
+
+spatial lag
+```{r annual revenue spatial lag, include=TRUE, echo = TRUE, message = FALSE, warning = FALSE}
+annualrevenue<- annualrevenue %>%
+  drop_na(annual_revenue)
+
+coords <- st_coordinates(annualrevenue) 
+
+neighborList <- knn2nb(knearneigh(coords, 5))
+
+spatialWeights <- nb2listw(neighborList, style="W")
 
 
-# Primary Model
 
-Factors: 
-
-```{r}
-
-reg.1 <- 
-  lm(price ~ ., data = details.clean %>% dplyr::select(price, bedrooms, bathrooms,  amenities.number, Postcode4, room_type, accommodates, minimum_nights, pool, waterfront, parking, fireplace, pool, availability_30, AC, bed_type, property_type, instant_bookable, number_of_reviews, review_scores_rating, dist.metro))
-  
-summary(reg.1)
+annualrevenue$lagRevenue <- lag.listw(spatialWeights, annualrevenue$annual_revenue)
 
 ```
 
+```{r annual revenue & spatial lag plot, include=TRUE, echo = TRUE, message = FALSE, warning = FALSE}
+ggplot(annualrevenue)+
+  geom_point(aes(x = lagRevenue, y = annual_revenue), alpha = 0.26)+
+  geom_smooth(aes(x = lagRevenue, y =annual_revenue), method = "lm", se= FALSE, color = "orange")+
+  labs(title="Revenue as a function of lagRevenue",
+      caption = "Figure xx. Scatterplots of revenue and lagRevenue")+
+  plotTheme()
+```
+
+Regression
+```{r annual revenue regression, include=TRUE, echo = TRUE, message = FALSE, warning = FALSE}
+annualrevenue <- merge(annualrevenue,listing.sf.neighbor2[c("id", "Buurt")], by = "id")
+
+#Split training and test set
+set.seed(31497)
+
+inTrain <- caret::createDataPartition(
+  y = st_drop_geometry(annualrevenue)$annual_revenue, 
+  p = .6, list = FALSE)
+
+annualrevenue.training <- st_drop_geometry(annualrevenue)[inTrain,]
+annualrevenue.test     <- st_drop_geometry(annualrevenue)[-inTrain,]
 
 
+reg.annualrevenue <- lm(annual_revenue ~ ., data = st_drop_geometry(annualrevenue) %>% 
+             dplyr::select(annual_revenue,beds, bedrooms, bathrooms, accommodates,
+                              pool, parking, kitchen, AC, fireplace,
+                              #Buurt,host_is_superhost,
+                              room_type,property_type,bed_type,
+                              minimum_nights,dist.museum,dist.supermarkets,
+                              Unesco,dist.metro,dist.plaza, dist.nightclub,
+                              dist.beach, dist.parks,
+                              #name.bright, name.spacious,name.luxury,
+                              amenities.number,lagRevenue)
+) 
+
+annualrev_predict_test <- annualrevenue.test %>%
+  mutate(Prediction = predict(reg.annualrevenue, newdata = annualrevenue.test)) %>%
+  mutate(Prediction = ifelse(Prediction > 0, Prediction, mean(annualrevenue.training$annual_revenue)))%>%
+  filter(annual_revenue!=0)%>%
+  drop_na(Prediction)%>%
+  mutate(AE = abs(Prediction-annual_revenue),
+         APE = AE/Prediction)
+
+test_result <- data.frame(MAE = c(mean(annualrev_predict_test$AE, na.rm=T)),
+              MAPE = c(scales::percent(mean(annualrev_predict_test$APE, na.rm=T)))) 
+
+test_result %>%
+  kable(caption = "Figure 8. Mean absolute error and MAPE for a single test set")%>%
+  kable_styling("striped", full_width = F)
+```
+
+```{r annual revenue regression summ, include=TRUE, echo = TRUE, message = FALSE, warning = FALSE}
+stargazer(reg.annualrevenue,
+          type = "text",
+          title ="Regression Output",
+          single.row = TRUE,
+          out.header = TRUE)
+
+```
+
+```{r annual revenue regression plot, include=TRUE, echo = TRUE, message = FALSE, warning = FALSE}
+ggplot(annualrev_predict_test,
+         aes(x=APE)) + 
+  labs(title = "APE Distribution",caption = "Figure XX. A histogram of APE") +
+  geom_histogram()+
+  plotTheme()
 
 
+ggplot(annualrev_predict_test %>%
+        filter(APE<1.5),
+         aes(x=APE)) + 
+  labs(title = "APE Distribution",caption = "Figure XX. A histogram of APE") +
+  geom_histogram()+
+  plotTheme()
+```
 
-
-
-
+```{r  annual revenue regression plot by Buurt, include=TRUE, echo = TRUE, message = FALSE, warning = FALSE}
+palette5 <- c("#ffffd4", "#fed98e", "#fe9929", "#d95f0e", "#993404")
+annualrev_predict_test%>%
+  filter(APE<1.5)%>%
+  group_by(Buurt) %>%
+  summarize(mean.APE = mean(APE, na.rm = T)) %>%
+  ungroup() %>% 
+  left_join(neighbor2,by = "Buurt") %>%
+    st_sf() %>%
+    ggplot() + 
+      geom_sf(aes(fill = mean.APE),colour = 'transparent') +
+      scale_fill_gradient(low = palette5[1], high = palette5[5],
+                          name = "MAPE") +
+      labs(title = "Average Test Set MAPE"
+           #,subtitle = "2019"
+           ) +
+      mapTheme
+```
