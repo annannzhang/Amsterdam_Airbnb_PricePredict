@@ -49,7 +49,8 @@ library(tidycensus)
 library(lubridate)
 library(viridis)
 library(stargazer)
-
+library(dplyr)
+library(plyr)
 
 library(scales)
 library(RColorBrewer)
@@ -292,7 +293,8 @@ details.sf$review_scores_accuracy <- as.numeric(details.sf$review_scores_accurac
 details.sf$review_scores_cleanliness<- as.numeric(details.sf$review_scores_cleanliness)
 details.sf$review_scores_value <- as.numeric(details.sf$review_scores_value)
 details.sf$reviews_per_month <- as.numeric(details.sf$reviews_per_month)
-detail.sf$id <- as.character(details.sf$id)
+details.sf$id <- as.character(details.sf$id)
+details.sf$property_type <- as.factor(details.sf$property_type)
 
 details.sf.raw <- details.sf
 ```
@@ -511,6 +513,7 @@ ggplot(monthly_occupancy,
 
 ## 4) Composition / Characteristics
 
+### Room Layout
 
 ```{r basic features, include=TRUE, echo = TRUE, message = FALSE, warning = FALSE}
 
@@ -526,6 +529,20 @@ stargazer(as.data.frame(table.basic),
 
 ```
 
+### Property Type 
+
+```{r}
+details.sf %>%
+  dplyr::select(property_type) %>%
+  ggplot() + geom_bar( aes(x=count(property_type)))
+
+count(details.sf$property_type) %>%
+  kable() %>%
+  kable_styling() 
+
+```
+
+### Puting them together...
 
 ```{r include=TRUE}
 
