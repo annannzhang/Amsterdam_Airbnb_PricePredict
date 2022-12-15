@@ -1,6 +1,6 @@
 ---
 title: "MUSA 508 Final - Amsterdam"
-author: 'Ben Keel, Yuhao Sun & Ann (Zian Zhang)'
+author: 'Ben Keel, Yuhao Sun & Ann (Zian) Zhang'
 date: "2022/12/06"
 output: 
   html_document:
@@ -26,9 +26,10 @@ knitr::opts_chunk$set(echo = TRUE, quiet = TRUE, warning=FALSE)
 
 # Data Source 
 
-
-
 ```{r Load R packages, include=TRUE, echo = TRUE, message = FALSE, warning = FALSE}
+
+source("https://raw.githubusercontent.com/urbanSpatial/Public-Policy-Analytics-Landing/master/functions.r")
+
 library(tidyverse)
 library(sf)
 library(RSocrata)
@@ -76,6 +77,9 @@ options(scipen=999)
 palette5 <- c("#FA8072","#9FE2BF","#FF006A","#FE4C35","#FE9900")
 palette4 <- c("#FA8072","#9FE2BF","#FE4C35","#FE9900")
 palette2 <- c("#FA8072","#9FE2BF")
+Teal <- c("#d1eeea", "#a8dbd9", "#85c4c9", "#68abb8", "#4f90a6")
+Purple <- c("#f3e0f7", "#e4c7f1", "#d1afe8", "#b998dd", "#9f82ce")
+
 qBr <- function(df, variable, rnd) {
   if (missing(rnd)) {
     as.character(quantile(round(df[[variable]],0),
@@ -295,45 +299,7 @@ details.sf.raw <- details.sf
 
 # Exploratory Analysis
 
-
-
-## Price
-
-## Occupancy
-
-## Room Composition / Characteristics
-
-
-
-## Amenities
-
-
-
-# New Features & Engineering
-
-## New Feature 1: Spatial Lag & Neighborhood Effect
-
-## New Feature 2: Access to Metro Station
-
-## New Feature 3: Proximity to Tourist Spots
-
-
-# Regression Model
-
-## Data Split: Testing & Training
-
-
-## Regression Results 
-
-
-# Cross Validation
-
-
-# Conclusion
-
-
-
-#### Price 
+Panels
 
 ```{r price panel, include=TRUE, echo = TRUE, message = FALSE, warning = FALSE}
 # Available Calendar
@@ -361,7 +327,6 @@ available_calendar2 <- available_calendar%>%
 length(unique(calendar$listing_id))
 length(unique(calendar$listing_id))*12
 ```
-
 
 ```{r deal with panel, include=TRUE, echo = TRUE, message = FALSE, warning = FALSE}
 study.panel <- 
@@ -412,17 +377,106 @@ no_price <- unique(listing_0price$listing_id)
 no_price
 ```
 
-
-
-
 ```{r drop NA listings, include=FALSE, echo = TRUE, message = FALSE, warning = FALSE}
 #Filter data with no price
 listing_panel <- listing_panel %>%
   filter(!listing_id %in% no_price)
 ```
 
+## Geographic Distribution 
 
-#### Occupancy
+
+```{r plot the number of airbnb, fig.width=6.4, fig.height=6.0, include=TRUE, echo = TRUE, message = FALSE, warning = FALSE}
+sf_use_s2(FALSE)
+listings.sf<- listings %>% 
+  st_as_sf(coords = c( "longitude","latitude"), crs = 4326, agr = "constant")
+
+neighbor2 <- neighbor2 %>% 
+  st_transform(st_crs(listings.sf))
+
+listing.sf.neighbor2 <- st_intersection(listings.sf,neighbor2) %>% 
+  dplyr::select(id, Buurt,Buurt_code) %>% 
+  mutate(count=1) %>% 
+  st_drop_geometry()
+
+listings.sf <- left_join(listings.sf, listing.sf.neighbor2,by='id')
+
+neighbo2.count <- listings.sf %>% 
+  group_by(Buurt) %>% 
+  summarise(airbnb.number = sum(count)) %>% 
+  dplyr::select(Buurt, airbnb.number) %>% 
+  st_drop_geometry()
+
+neighbor2 <- left_join(neighbor2,neighbo2.count,by="Buurt")
+
+ggplot()+
+  geom_sf(data = neighbor2, aes(fill=q5(airbnb.number)),color='transparent')+
+  scale_fill_manual(values = Purple,
+                     labels = qBr(neighbor2,'airbnb.number'),)+
+  labs(title = "Airbnb Number for Each neighborhood")+
+  mapTheme()
+```
+
+
+```{r  fig.width=6.4, fig.height=6.0, include=TRUE, echo = TRUE, message = FALSE, warning = FALSE}
+
+
+neighbor2 %>% ggplot() + 
+      geom_sf(aes(fill = airbnb.number), color = 'white') +
+      scale_fill_gradient(low = Purple[1], high = Purple[5],
+                          name = "Airbnb Number") +
+      labs(title = "Airbnb Number for Each ZIP") +
+      mapTheme()
+```
+
+
+## Price
+
+### Seasonality
+```{r price change, fig.width=8, fig.height=3.8, include = TRUE, echo=TRUE, warning= FALSE, message=FALSE}
+Month_price <- calendar%>%
+  mutate(date2 = ymd(date))%>%
+  mutate(month = month(date2),
+         listing_id = as.character(listing_id),
+         price = parse_number(price))%>%
+  mutate(month = as.character(month))%>%
+  mutate(month = ifelse(month != 10 & month != 11 & month != 12, gsub("^","0",month), month)) %>%
+  drop_na(price) %>%
+  group_by(month) %>%
+  summarize(mean_monthly_price = mean(price))
+
+
+ggplot(Month_price, 
+       aes(x=month, y=mean_monthly_price, group =1)) +
+  geom_line(size=1, color = "#9FE2BF") +
+  labs(title = "Average Airbnb Price Every Month", subtitle = "Amsterdam, NL; 2018") +
+  xlab("Month of the Year") + ylab("Average Price") +
+  plotTheme()
+```
+
+### Price per Bed
+
+```{r plot price per bed, fig.width=6.4, fig.height=6.0, include=TRUE, echo = TRUE, message = FALSE, warning = FALSE}
+details.sf <- 
+  details.sf %>% 
+  mutate(priceBed=price/beds) %>% 
+  filter(priceBed <=1000)
+
+
+ggplot()+
+  geom_sf(data = neighborhood,fill='grey90',color = 'white')+
+  geom_sf(data = details.sf, aes(colour=q5(priceBed)),size=.5)+
+  scale_color_manual(values = Teal,
+                     labels = qBr(details.sf,'priceBed'), name="Price per Bed (Euro)")+
+  labs(title = "Price per Bed",
+       subtitle = 'Amsterdam Airbnb, price on 2018-12-6'
+       )+
+  mapTheme()
+
+```
+
+
+## Occupancy
 
 ```{r occupancy, fig.width=8, fig.height=3.8, include = TRUE, echo=TRUE, warning=FALSE, message=FALSE}
 index <- function(x, flag = '0') {
@@ -447,98 +501,57 @@ monthly_occupancy <- occupancy %>%
 
 ggplot(monthly_occupancy, 
        aes(x=month, y=mean_monthly_occupancy, group =1)) +
-  geom_line(size=1, color = "#FE9900")+
+  geom_line(size=1, color = "#FE9900") +
+  labs(title = "Airbnb Occupancy Every Month", subtitle = "Amsterdam, NL; 2018") +
+  xlab("Month of the Year") + ylab("Average Monthly Occupancy") +
   plotTheme()
 ```
 
 
-
-```{r price change, fig.width=8, fig.height=3.8, include = TRUE, echo=TRUE, warning= FALSE, message=FALSE}
-Month_price <- calendar%>%
-  mutate(date2 = ymd(date))%>%
-  mutate(month = month(date2),
-         listing_id = as.character(listing_id),
-         price = parse_number(price))%>%
-  mutate(month = as.character(month))%>%
-  mutate(month = ifelse(month != 10 & month != 11 & month != 12, gsub("^","0",month), month)) %>%
-  drop_na(price) %>%
-  group_by(month) %>%
-  summarize(mean_monthly_price = mean(price))
-
-
-ggplot(Month_price, 
-       aes(x=month, y=mean_monthly_price, group =1)) +
-  geom_line(size=1, color = "#9FE2BF")+
-  plotTheme()
-```
+## Room Composition / Characteristics
 
 
 
-
-### Visualization
-
-
-Plot price per bed
-```{r plot listings, fig.width=6.4, fig.height=6.0, include=TRUE, echo = TRUE, message = FALSE, warning = FALSE}
-details.sf <- 
-  details.sf %>% 
-  mutate(priceBed=price/beds) %>% 
-  filter(priceBed <=1000)
+## Amenities
 
 
-ggplot()+
-  geom_sf(data = neighborhood,fill='grey90',color = 'white')+
-  geom_sf(data = details.sf, aes(colour=q5(priceBed)),size=.5)+
-  scale_color_manual(values = palette5,
-                     labels = qBr(details.sf,'priceBed'),)+
-  labs(title = "Price per bed"#,
-       #subtitle = 'Amsterdam Airbnb, price on 2018-12-6'
-       )+
-  mapTheme
 
-```
+# New Features & Engineering
+
+## New Feature 1: Spatial Lag & Neighborhood Effect
+
+## New Feature 2: Access to Metro Station
+
+## New Feature 3: Proximity to Tourist Spots
+
+
+# Regression Model
+
+## Data Split: Testing & Training
+
+
+## Regression Results 
+
+
+# Cross Validation
+
+
+# Conclusion
+
+
+
+
+
+
+
+
+
+
 
 
 Plot airbnb by smaller neighborhood
-```{r plot the number of airbnb, fig.width=6.4, fig.height=6.0, include=TRUE, echo = TRUE, message = FALSE, warning = FALSE}
-sf_use_s2(FALSE)
-listings.sf<- listings %>% 
-  st_as_sf(coords = c( "longitude","latitude"), crs = 4326, agr = "constant")
-
-neighbor2 <- neighbor2 %>% 
-  st_transform(st_crs(listings.sf))
-
-listing.sf.neighbor2 <- st_intersection(listings.sf,neighbor2) %>% 
-  dplyr::select(id, Buurt,Buurt_code) %>% 
-  mutate(count=1) %>% 
-  st_drop_geometry()
-
-listings.sf <- left_join(listings.sf, listing.sf.neighbor2,by='id')
-
-neighbo2.count <- listings.sf %>% 
-  group_by(Buurt) %>% 
-  summarise(airbnb.number = sum(count)) %>% 
-  dplyr::select(Buurt, airbnb.number) %>% 
-  st_drop_geometry()
-
-neighbor2 <- left_join(neighbor2,neighbo2.count,by="Buurt")
-
-neighbor2 %>% ggplot() + 
-      geom_sf(aes(fill = airbnb.number), color = 'white') +
-      scale_fill_gradient(low = '#f3c226', high = palette5[5],
-                          name = "Airbnb Number") +
-      labs(title = "Airbnb Number for Each ZIP") +
-      mapTheme
-
-ggplot()+
-  geom_sf(data = neighbor2, aes(fill=q5(airbnb.number)),color='transparent')+
-  scale_fill_manual(values = palette5,
-                     labels = qBr(neighbor2,'airbnb.number'),)+
-  labs(title = "Airbnb Number for Each neighborhood")+
-  mapTheme
 
 
-```
 
 Feature summary
 ```{r basic features, include=TRUE, echo = TRUE, message = FALSE, warning = FALSE}
