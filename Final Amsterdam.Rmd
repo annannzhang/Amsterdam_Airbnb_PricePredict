@@ -755,6 +755,27 @@ ggplot(annualrevenue)+
 ## New Feature 2: Access to Public Transit
 
 ```{r}
+listings$longitude = as.numeric(listings$longitude)
+listings$latitude = as.numeric(listings$latitude)
+listings.sf<- listings %>% 
+  st_as_sf(coords = c( "longitude","latitude"), crs = 4326, agr = "constant")
+
+st_crs(metro) <- st_crs(listings.sf)
+
+st_c <- st_coordinates
+
+details.sf.c <- details.sf%>%
+  st_transform('ESRI:102013') %>%
+  dplyr::select(geometry) %>%
+  na.omit
+
+metro.c <- metro%>%
+  st_transform('ESRI:102013') 
+
+
+```
+
+```{r}
 ggplot()+
   geom_sf(data = neighbor2, aes(fill=q5(airbnb.number)),color='transparent') +
   scale_fill_manual(values = Pink,
@@ -768,45 +789,12 @@ ggplot()+
 K-nn Function for Public Transit
 
 ```{r Distance to metro, fig.width=6.4, fig.height=6.0, include=TRUE, echo = TRUE, message = FALSE, warning = FALSE}
-listings$longitude = as.numeric(listings$longitude)
-listings$latitude = as.numeric(listings$latitude)
-listings.sf<- listings %>% 
-  st_as_sf(coords = c( "longitude","latitude"), crs = 4326, agr = "constant")
-
-st_crs(metro) <- st_crs(listings.sf)
-
-st_c <- st_coordinates
-
-details.sf.c <- st_centroid(details.sf)%>%
-  st_transform('ESRI:102013') %>%
-  dplyr::select(geometry)
-metro.c <- st_centroid(metro)%>%
-  st_transform('ESRI:102013') %>%
-  dplyr::select(geometry)
-
-
-nn_function <- function(measureFrom,measureTo,k) {
-  measureFrom_Matrix <- as.matrix(measureFrom)
-  measureTo_Matrix <- as.matrix(measureTo)
-  nn <-   
-    get.knnx(measureTo, measureFrom, k)$nn.dist
-  output <-
-    as.data.frame(nn) %>%
-    rownames_to_column(var = "thisPoint") %>%
-    gather(points, point_distance, V1:ncol(.)) %>%
-    arrange(as.numeric(thisPoint)) %>%
-    group_by(thisPoint) %>%
-    summarize(pointDistance = mean(point_distance)) %>%
-    arrange(as.numeric(thisPoint)) %>% 
-    dplyr::select(-thisPoint) %>%
-    pull()
-  
-  return(output)  
-}
 
 details.sf <- details.sf %>%
-  mutate(dist.metro = nn_function(st_coordinates(details.sf.c),st_coordinates(metro.c), k=1))
+  mutate(dist.metro = nn_function(st_c(details.sf.c),st_c(metro.c), k=1))
+```
 
+```{r}
 metro <- metro%>%
   st_transform('ESRI:102013')
 listings.sf <- listings.sf%>%
@@ -1036,6 +1024,17 @@ reg.annualrevenue <- lm(annual_revenue ~ ., data = st_drop_geometry(annualrevenu
                               amenities.number,lagRevenue)
 ) 
 
+reg.annualrevenue <- lm(price ~ ., data = st_drop_geometry(annualrevenue) %>% 
+             dplyr::select(price,beds, bedrooms, bathrooms, accommodates,
+                              pool, parking, kitchen, AC, fireplace,
+                              room_type,property_type,bed_type,
+                              minimum_nights,
+                              #name.bright, name.spacious,name.luxury,
+                              amenities.number,lagRevenue)
+) 
+summary(reg.annualrevenue)
+
+
 annualrev_predict_test <- annualrevenue.test %>%
   mutate(Prediction = predict(reg.annualrevenue, newdata = annualrevenue.test)) %>%
   mutate(Prediction = ifelse(Prediction > 0, Prediction, mean(annualrevenue.training$annual_revenue)))%>%
@@ -1100,8 +1099,13 @@ annualrev_predict_test%>%
 
 # Cross Validation: LOGO (Leave One Group Out)
 
+```{r}
 
 
+
+
+
+```
 
 
 # Conclusion
@@ -1111,22 +1115,3 @@ annualrev_predict_test%>%
 
 
 
-
-
-
-
-
-```{r calculate annual revenue , include=TRUE, echo = TRUE, message = FALSE, warning = FALSE}
-annualrevenue <- revenue_panel %>%
-  group_by(id) %>%
-  summarise(annual_revenue = sum(revenue))
-
-annualrevenue<- left_join(details.sf, annualrevenue,by="id")%>%
-    filter(!id %in% no_price)
-```
-
-
-
-
-
-# Regression
