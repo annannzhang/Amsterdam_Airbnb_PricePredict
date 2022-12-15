@@ -80,6 +80,7 @@ palette4 <- c("#FA8072","#9FE2BF","#FE4C35","#FE9900")
 palette2 <- c("#FA8072","#9FE2BF")
 Teal <- c("#d1eeea", "#a8dbd9", "#85c4c9", "#68abb8", "#4f90a6")
 Purple <- c("#f3e0f7", "#e4c7f1", "#d1afe8", "#b998dd", "#9f82ce")
+Pink <- c("#ffffff","#f9f4f4","#f0e4e4", "#e7d3d3", "#dec3c3")
 
 qBr <- function(df, variable, rnd) {
   if (missing(rnd)) {
@@ -414,7 +415,7 @@ neighbor2 <- left_join(neighbor2,neighbo2.count,by="Buurt")
 
 ggplot()+
   geom_sf(data = neighbor2, aes(fill=q5(airbnb.number)),color='transparent')+
-  scale_fill_manual(values = Purple,
+  scale_fill_manual(values = Pink,
                      labels = qBr(neighbor2,'airbnb.number'), name = 'Count')+
   labs(title = "Number of Airbnb per Neighborhood", subtitle = "Amsterdam, NL; 2018") +
   mapTheme()
@@ -432,6 +433,46 @@ neighbor2 %>% ggplot() +
       mapTheme()
 ```
 
+
+
+Hotspots Fishnet 
+
+```{r Airbnb hotspot, fig.width=6.4, fig.height=6.0, include=TRUE, echo = TRUE, message = FALSE, warning = FALSE}
+#create fishnet
+
+amsterdam.boundary <- st_union(neighborhood) %>% st_transform('ESRI:102013')
+
+fishnet <- 
+  st_make_grid(amsterdam.boundary, cellsize = 300) %>%
+    .[amsterdam.boundary] %>%
+  st_sf() %>%
+  mutate(uniqueID = rownames(.))
+
+fishnet <- fishnet %>% 
+  mutate(uniqueID = rownames(.))
+
+fishnet.count <- st_intersection(listings.sf,fishnet) %>% 
+  mutate(count = 1) %>% 
+  st_drop_geometry() %>% 
+  dplyr::select(uniqueID, count) %>% 
+  group_by(uniqueID) %>% 
+  summarise(countairbnb = sum(count))
+
+airbnb_net <- 
+  dplyr::select(listings.sf) %>% 
+  mutate(countairbnb = 1) %>% 
+  aggregate(., fishnet, sum)
+
+airbnb_net <- airbnb_net %>% 
+  mutate(countairbnb = tidyr::replace_na(countairbnb,0),
+         uniqueID = row.names(.))
+
+ggplot() +
+  geom_sf(data = airbnb_net, aes(fill = countairbnb), color = NA) +
+  scale_fill_viridis() +
+  labs(title = "Count of airbnb for the fishnet") +
+  mapTheme()
+```
 
 ## 2) Price
 
@@ -711,8 +752,18 @@ ggplot(annualrevenue)+
   plotTheme()
 ```
 
-## New Feature 2: Access to Metro Station
+## New Feature 2: Access to Public Transit
 
+```{r}
+ggplot()+
+  geom_sf(data = neighbor2, aes(fill=q5(airbnb.number)),color='transparent') +
+  scale_fill_manual(values = Pink,
+                     labels = qBr(neighbor2,'airbnb.number'), name = 'Count of Airbnb') +
+  geom_sf(data=metro.c$geometry, aes(color=metro.c$Modaliteit)) +
+  scale_color_manual(values=c(palette2[1], '#7171C6'), name = 'Type of Transit') +
+  labs(title = "Number of Airbnb per Neighborhood", subtitle = "Amsterdam, NL; 2018") +
+  mapTheme()
+```
 
 ```{r Distance to metro, fig.width=6.4, fig.height=6.0, include=TRUE, echo = TRUE, message = FALSE, warning = FALSE}
 listings$longitude = as.numeric(listings$longitude)
@@ -729,8 +780,28 @@ details.sf.c <- st_centroid(details.sf)%>%
 metro.c <- st_centroid(metro)%>%
   st_transform('ESRI:102013')
 
+
+nn_function <- function(measureFrom,measureTo,k) {
+  measureFrom_Matrix <- as.matrix(measureFrom)
+  measureTo_Matrix <- as.matrix(measureTo)
+  nn <-   
+    get.knnx(measureTo, measureFrom, k)$nn.dist
+  output <-
+    as.data.frame(nn) %>%
+    rownames_to_column(var = "thisPoint") %>%
+    gather(points, point_distance, V1:ncol(.)) %>%
+    arrange(as.numeric(thisPoint)) %>%
+    group_by(thisPoint) %>%
+    summarize(pointDistance = mean(point_distance)) %>%
+    arrange(as.numeric(thisPoint)) %>% 
+    dplyr::select(-thisPoint) %>%
+    pull()
+  
+  return(output)  
+}
+
 details.sf <- details.sf%>%
-  mutate(dist.metro =nn_function(st_coordinates(details.sf.c),st_coordinates(metro.c),1))
+  mutate(dist.metro =nn_function(st_coordinates(details.sf.c$geometry),st_coordinates(metro.c$geometry),1))
 
 metro <- metro%>%
   st_transform('ESRI:102013')
@@ -759,7 +830,6 @@ ggplot()+
 ## New Feature 3: Proximity to Tourist Amenities 
 
 
-
 ```{r outside attractions,  include=TRUE, echo = TRUE, message = FALSE, warning = FALSE}
 unesco <-
   #st_read('UnescoWerelderfgoed_region.shp') %>%
@@ -768,7 +838,6 @@ unesco <-
 
 parks <- st_read('parks.json') %>% 
   st_transform(st_crs(neighborhood))
-
 
 attraction <- st_read('amsterdam-attraction.csv') %>% 
   filter(lat != 'attraction')
@@ -932,83 +1001,6 @@ annualrevenue.test     <- st_drop_geometry(annualrevenue)[-inTrain,]
 
 
 
-
-
-
-
-
-#### Hotspots
-
-```{r Airbnb hotspot, fig.width=6.4, fig.height=6.0, include=TRUE, echo = TRUE, message = FALSE, warning = FALSE}
-#create fishnet
-
-amsterdam.boundary <- st_union(neighborhood) %>% st_transform('ESRI:102013')
-
-
-fishnet <- 
-  st_make_grid(amsterdam.boundary, cellsize = 300) %>%
-  st_sf() %>%
-  mutate(uniqueID = rownames(.))
-
-fishnet <- fishnet %>% 
-  mutate(uniqueID = rownames(.))
-
-fishnet.count <- st_intersection(listings.sf,fishnet) %>% 
-  mutate(count = 1) %>% 
-  st_drop_geometry() %>% 
-  dplyr::select(uniqueID, count) %>% 
-  group_by(uniqueID) %>% 
-  summarise(countairbnb = sum(count))
-
-airbnb_net <- 
-  dplyr::select(listings.sf) %>% 
-  mutate(countairbnb = 1) %>% 
-  aggregate(., fishnet, sum)
-
-airbnb_net <- airbnb_net %>% 
-  mutate(countairbnb = tidyr::replace_na(countairbnb,0),
-         uniqueID = row.names(.))
-
-
-ggplot() +
-  geom_sf(data = airbnb_net, aes(fill = countairbnb), color = NA) +
-  scale_fill_viridis() +
-  labs(title = "Count of airbnb for the fishnet") +
-  mapTheme
-```
-
-
-
-
-
-```{r occupancy join, include=TRUE, echo = TRUE, message = FALSE, warning = FALSE}
-occupancy3 <- occupancy %>%
-  dplyr::rename(id = listing_id) 
-  
-occupancy3 <-  
-  left_join(occupancy3, st_drop_geometry(details.sf), by = "id")
-```
-
-```{r price by month, include=TRUE, echo = TRUE, message = FALSE, warning = FALSE}
-listing_panel <- listing_panel%>%
-   dplyr::rename(id = listing_id)
-
-revenue_panel <- merge(occupancy3,listing_panel[c("id","month","each_month_price")],by=c("id","month")) %>%
-  mutate(revenue = each_month_price*monthly_occupancy)
-```
-
-```{r correlation matrix, include=TRUE, echo = TRUE, message = FALSE, warning = FALSE}
-revenue_panel$id <- as.numeric(revenue_panel$id)
-
-annualrevenue <- revenue_panel %>%
-  group_by(id) %>%
-  dplyr::summarise(annualrevenue = sum(revenue))
-
-annualrevenue<- left_join(details.sf, annualrevenue,by="id")%>%
-    filter(!id %in% no_price)%>%
-    mutate(bathrooms = as.numeric(bathrooms),
-         bedrooms = as.numeric(bedrooms))
-```
 
 
 
