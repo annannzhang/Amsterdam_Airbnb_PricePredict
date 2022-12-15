@@ -15,7 +15,12 @@ output:
 knitr::opts_chunk$set(echo = TRUE, quiet = TRUE, warning=FALSE)
 ```
 
-Setup
+
+# Presentation - Youtube Link 
+
+# Background Information -- Amsterdam Airbnb Market
+
+# Data Source 
 
 ```{r Load R packages, include=TRUE, echo = TRUE, message = FALSE, warning = FALSE}
 library(tidyverse)
@@ -59,8 +64,6 @@ library(SnowballC)
 options(scipen=999)
 ```
 
-
-format
 
 ```{r formatting, include=FALSE, echo = TRUE, message = FALSE, warning = FALSE}
 
@@ -132,7 +135,6 @@ mapTheme <- theme(plot.title =element_text(size=12),
 
 ```
 
-Function
 
 ```{r function, include=FALSE, echo = TRUE, message = FALSE, warning = FALSE}
 nn_function <- function(measureFrom,measureTo,k) {
@@ -221,18 +223,17 @@ html_to_text<-function(url){
 }
 ```
 
-Data Wrangling
-
-Load data
 
 ```{r load data, include=FALSE, echo = TRUE, message = FALSE, warning = FALSE}
 
-listings <- st_read("listings.csv")
+#listings <- st_read("listings.csv")
+#details <- st_read("listings_details.csv")
+#calendar <- read.csv("calendar.csv")
 
-details <- st_read("listings_details.csv")
 
-calendar <- read.csv("calendar.csv")
-
+details <- read.csv("/Users/annzhang/Downloads/archive/listings_details.csv")
+listings <- read.csv("/Users/annzhang/Downloads/archive/listings.csv")
+calendar <- read.csv("/Users/annzhang/Downloads/archive/calendar.csv")
 
 
 #large neighborhood
@@ -261,6 +262,7 @@ zipcode4 <- st_read('zipcode4.json') %>%
   st_transform(st_crs(neighborhood))
 ```
 
+
 ```{r  text, include=TRUE, echo = TRUE, message = FALSE, warning = FALSE}
 details.sf <- st_as_sf(details,coords = c('longitude','latitude'),crs = 4326) %>% 
   st_transform(st_crs(neighborhood))
@@ -283,6 +285,37 @@ details.sf$reviews_per_month <- as.numeric(details.sf$reviews_per_month)
 
 details.sf.raw <- details.sf
 ```
+
+
+# Exploratory Analysis
+
+## Price
+
+## Occupancy
+
+## Amenities
+
+# New Features & Engineering
+
+## New Feature 1: Spatial Lag & Neighborhood Effect
+
+## New Feature 2: Access to Metro Station
+
+## New Feature 3: Proximity to Tourist Spots
+
+
+# Regression Model
+
+## Data Split: Testing & Training
+
+
+## Regression Results 
+
+
+# Cross Validation
+
+
+# Conclusion
 
 
 
