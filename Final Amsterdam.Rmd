@@ -575,7 +575,7 @@ stargazer(as.data.frame(table.basic),
 ```{r}
 details.sf %>%
   dplyr::select(property_type) %>%
-  ggplot() + geom_bar( aes(x=count(property_type)))
+  ggplot() + geom_bar(aes(x=count(property_type)))
 
 count(details.sf$property_type) %>%
   kable() %>%
@@ -761,9 +761,11 @@ ggplot()+
                      labels = qBr(neighbor2,'airbnb.number'), name = 'Count of Airbnb') +
   geom_sf(data=metro.c$geometry, aes(color=metro.c$Modaliteit)) +
   scale_color_manual(values=c(palette2[1], '#7171C6'), name = 'Type of Transit') +
-  labs(title = "Number of Airbnb per Neighborhood", subtitle = "Amsterdam, NL; 2018") +
+  labs(title = "Public Transit & Number of Airbnb", subtitle = "Amsterdam, NL; 2018") +
   mapTheme()
 ```
+
+K-nn Function for Public Transit
 
 ```{r Distance to metro, fig.width=6.4, fig.height=6.0, include=TRUE, echo = TRUE, message = FALSE, warning = FALSE}
 listings$longitude = as.numeric(listings$longitude)
@@ -776,9 +778,11 @@ st_crs(metro) <- st_crs(listings.sf)
 st_c <- st_coordinates
 
 details.sf.c <- st_centroid(details.sf)%>%
-  st_transform('ESRI:102013')
+  st_transform('ESRI:102013') %>%
+  dplyr::select(geometry)
 metro.c <- st_centroid(metro)%>%
-  st_transform('ESRI:102013')
+  st_transform('ESRI:102013') %>%
+  dplyr::select(geometry)
 
 
 nn_function <- function(measureFrom,measureTo,k) {
@@ -800,8 +804,8 @@ nn_function <- function(measureFrom,measureTo,k) {
   return(output)  
 }
 
-details.sf <- details.sf%>%
-  mutate(dist.metro =nn_function(st_coordinates(details.sf.c$geometry),st_coordinates(metro.c$geometry),1))
+details.sf <- details.sf %>%
+  mutate(dist.metro = nn_function(st_coordinates(details.sf.c),st_coordinates(metro.c), k=1))
 
 metro <- metro%>%
   st_transform('ESRI:102013')
@@ -972,6 +976,29 @@ details.sf$Unesco <- tidyr::replace_na(details.sf$Unesco,'outside')
 ```
 
 
+# Feature Review: Correlation Matrix
+
+
+```{r numeric correlation matrix, fig.width=6.4, fig.height=6.0, include=TRUE, echo = TRUE, message = FALSE, warning = FALSE}
+numericVars <- 
+  select_if(st_drop_geometry(annualrevenue), is.numeric) %>% na.omit() %>% 
+  dplyr::select(annual_revenue,price,beds, bedrooms, bathrooms, 
+                              minimum_nights,dist.museum,dist.supermarkets,
+                              dist.metro,dist.plaza, dist.nightclub,
+                              dist.beach, dist.parks,
+                              amenities.number)
+
+
+ggcorrplot(
+  round(cor(numericVars), 1), 
+  p.mat = cor_pmat(numericVars),
+  colors = c("#4757a2", "white", "#E46B45"),
+  type="lower",
+  insig = "blank") +  
+    labs(title = "Correlation across numeric variables") 
+```
+
+
 # Regression Model
 
 ## Data Split: Testing & Training
@@ -994,53 +1021,6 @@ annualrevenue.test     <- st_drop_geometry(annualrevenue)[-inTrain,]
 ## Regression Results 
 
 
-# Cross Validation
-
-
-# Conclusion
-
-
-
-
-
-
-
-
-
-
-```{r numeric correlation matrix, fig.width=6.4, fig.height=6.0, include=TRUE, echo = TRUE, message = FALSE, warning = FALSE}
-numericVars <- 
-  select_if(st_drop_geometry(annualrevenue), is.numeric) %>% na.omit() %>% 
-  dplyr::select(annual_revenue,price,beds, bedrooms, bathrooms, 
-                              minimum_nights,dist.museum,dist.supermarkets,
-                              dist.metro,dist.plaza, dist.nightclub,
-                              dist.beach, dist.parks,
-                              amenities.number)
-
-
-ggcorrplot(
-  round(cor(numericVars), 1), 
-  p.mat = cor_pmat(numericVars),
-  colors = c("#4757a2", "white", "#E46B45"),
-  type="lower",
-  insig = "blank") +  
-    labs(title = "Correlation across numeric variables") 
-```
-
-```{r calculate annual revenue , include=TRUE, echo = TRUE, message = FALSE, warning = FALSE}
-annualrevenue <- revenue_panel %>%
-  group_by(id) %>%
-  summarise(annual_revenue = sum(revenue))
-
-annualrevenue<- left_join(details.sf, annualrevenue,by="id")%>%
-    filter(!id %in% no_price)
-```
-
-
-
-
-
-# Regression
 
 ```{r}
 
@@ -1087,7 +1067,9 @@ ggplot(annualrev_predict_test,
   labs(title = "APE Distribution",caption = "Figure XX. A histogram of APE") +
   geom_histogram()+
   plotTheme()
+```
 
+```{r}
 
 ggplot(annualrev_predict_test %>%
         filter(APE<1.5),
@@ -1115,3 +1097,36 @@ annualrev_predict_test%>%
            ) +
       mapTheme
 ```
+
+# Cross Validation: LOGO (Leave One Group Out)
+
+
+
+
+
+# Conclusion
+
+
+
+
+
+
+
+
+
+
+
+```{r calculate annual revenue , include=TRUE, echo = TRUE, message = FALSE, warning = FALSE}
+annualrevenue <- revenue_panel %>%
+  group_by(id) %>%
+  summarise(annual_revenue = sum(revenue))
+
+annualrevenue<- left_join(details.sf, annualrevenue,by="id")%>%
+    filter(!id %in% no_price)
+```
+
+
+
+
+
+# Regression
