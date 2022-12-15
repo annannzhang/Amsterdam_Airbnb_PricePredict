@@ -630,7 +630,7 @@ details.sf <- details.sf %>%
 
 ## New Feature 1: Spatial Lag & Neighborhood Effect
 
-Neighborhood Effect
+### Neighborhood Effect
 
 ```{r Neighborhood Effect, include=TRUE, echo = TRUE, message = FALSE, warning = FALSE }
 details.sf.neighbor <- st_intersection(details.sf,zipcode4) %>% 
@@ -655,7 +655,38 @@ listing.sf.neighbor2$id <- as.character(listing.sf.neighbor2$id)
 detail.sf <- left_join(details.sf,listing.sf.neighbor2, by = "id")
 ```
 
-spatial lag
+### Spatial Lag
+
+```{r occupancy join, include=TRUE, echo = TRUE, message = FALSE, warning = FALSE}
+occupancy3 <- occupancy %>%
+  dplyr::rename(id = listing_id) 
+  
+occupancy3 <-  
+  left_join(occupancy3, st_drop_geometry(details.sf), by = "id")
+```
+
+```{r price by month, include=TRUE, echo = TRUE, message = FALSE, warning = FALSE}
+listing_panel <- listing_panel%>%
+   dplyr::rename(id = listing_id)
+
+revenue_panel <- merge(occupancy3,listing_panel[c("id","month","each_month_price")],by=c("id","month")) %>%
+  mutate(revenue = each_month_price*monthly_occupancy)
+```
+
+```{r correlation matrix, include=TRUE, echo = TRUE, message = FALSE, warning = FALSE}
+
+annualrevenue <- revenue_panel %>%
+  group_by(id) %>%
+  dplyr::summarise(annual_revenue = sum(revenue))
+
+
+annualrevenue<- left_join(details.sf, annualrevenue,by="id")%>%
+    filter(!id %in% no_price)%>%
+    mutate(bathrooms = as.numeric(bathrooms),
+         bedrooms = as.numeric(bedrooms))
+```
+
+
 ```{r annual revenue spatial lag, include=TRUE, echo = TRUE, message = FALSE, warning = FALSE}
 
 annualrevenue<- annualrevenue %>%
@@ -668,7 +699,6 @@ neighborList <- knn2nb(knearneigh(coords, 5))
 spatialWeights <- nb2listw(neighborList, style="W")
 
 
-
 annualrevenue$lagRevenue <- lag.listw(spatialWeights, annualrevenue$annual_revenue)
 
 ```
@@ -677,13 +707,11 @@ annualrevenue$lagRevenue <- lag.listw(spatialWeights, annualrevenue$annual_reven
 ggplot(annualrevenue)+
   geom_point(aes(x = lagRevenue, y = annual_revenue), alpha = 0.26)+
   geom_smooth(aes(x = lagRevenue, y =annual_revenue), method = "lm", se= FALSE, color = "orange")+
-  labs(title="Revenue as a function of lagRevenue",
-      caption = "Figure xx. Scatterplots of revenue and lagRevenue")+
+  labs(title="Annual Revenue as a function of lagRevenue", y='Annual Revenue', x = 'Lag Annual Revenue') +
   plotTheme()
 ```
 
 ## New Feature 2: Access to Metro Station
-
 
 
 ```{r Distance to metro, fig.width=6.4, fig.height=6.0, include=TRUE, echo = TRUE, message = FALSE, warning = FALSE}
@@ -950,6 +978,9 @@ ggplot() +
 ```
 
 
+
+
+
 ```{r occupancy join, include=TRUE, echo = TRUE, message = FALSE, warning = FALSE}
 occupancy3 <- occupancy %>%
   dplyr::rename(id = listing_id) 
@@ -967,10 +998,11 @@ revenue_panel <- merge(occupancy3,listing_panel[c("id","month","each_month_price
 ```
 
 ```{r correlation matrix, include=TRUE, echo = TRUE, message = FALSE, warning = FALSE}
+revenue_panel$id <- as.numeric(revenue_panel$id)
+
 annualrevenue <- revenue_panel %>%
   group_by(id) %>%
-  summarise(annual_revenue = sum(revenue))
-
+  dplyr::summarise(annualrevenue = sum(revenue))
 
 annualrevenue<- left_join(details.sf, annualrevenue,by="id")%>%
     filter(!id %in% no_price)%>%
@@ -1011,6 +1043,9 @@ annualrevenue <- revenue_panel %>%
 annualrevenue<- left_join(details.sf, annualrevenue,by="id")%>%
     filter(!id %in% no_price)
 ```
+
+
+
 
 
 # Regression
