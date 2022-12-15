@@ -511,6 +511,22 @@ ggplot(monthly_occupancy,
 ## 4) Composition / Characteristics
 
 
+Feature summary
+```{r basic features, include=TRUE, echo = TRUE, message = FALSE, warning = FALSE}
+
+table.basic <- details.sf %>% 
+  st_drop_geometry() %>% 
+  dplyr::select(price ,beds, bedrooms, bathrooms, accommodates)
+
+stargazer(as.data.frame(table.basic),
+          type = "text",
+          title ="Table 1. Basic Features Summary",
+          single.row = TRUE,
+          out.header = TRUE)
+
+```
+
+
 
 ## 5) Amenities
 
@@ -676,20 +692,6 @@ annualrevenue.test     <- st_drop_geometry(annualrevenue)[-inTrain,]
 
 
 
-Feature summary
-```{r basic features, include=TRUE, echo = TRUE, message = FALSE, warning = FALSE}
-
-table.basic <- details.sf %>% 
-  st_drop_geometry() %>% 
-  dplyr::select(price ,beds, bedrooms, bathrooms, accommodates)
-
-stargazer(as.data.frame(table.basic),
-          type = "text",
-          title ="Table 1. Basic Features Summary",
-          single.row = TRUE,
-          out.header = TRUE)
-
-```
 
 
 
