@@ -514,6 +514,69 @@ ggplot(monthly_occupancy,
 
 ## 5) Amenities
 
+```{r amenities, include=TRUE, echo = TRUE, message = FALSE, warning = FALSE}
+#pool
+details.sf <- details.sf %>%
+  mutate(pool = ifelse(str_detect(amenities, "Pool"), "Yes", "No"))
+
+#Paid parking off premises
+details.sf <- details.sf %>%
+  mutate(parking = ifelse(str_detect(amenities, "Paid parking off premises"), 
+                          "Yes", "No"))
+
+#Indoor fireplace
+details.sf <- details.sf %>%
+  mutate(fireplace = ifelse(str_detect(amenities, "Indoor fireplace"), 
+                          "Yes", "No"))
+
+#Waterfront
+details.sf <- details.sf %>%
+  mutate(waterfront = ifelse(str_detect(amenities, "Waterfront"), 
+                          "Yes", "No"))
+
+#Kitchen
+details.sf <- details.sf %>%
+  mutate(kitchen = ifelse(str_detect(amenities, "Kitchen"), 
+                          "Yes", "No"))
+
+#Air conditioning
+details.sf <- details.sf %>%
+  mutate(AC = ifelse(str_detect(amenities, "Air conditioning"), 
+                          "Yes", "No"))
+```
+
+
+```{r plot amenities,fig.width=10, fig.height=6.8, include=TRUE, echo = TRUE, message = FALSE, warning = FALSE}
+amenitie_vars <- c('fireplace','waterfront','pool','parking','kitchen','AC')
+plotList <- list()
+
+for (i in amenitie_vars){
+plotList[[i]] <- 
+  details.sf %>%st_drop_geometry() %>% 
+  dplyr::select(price,i) %>%
+  filter(price<500) %>% 
+  gather(Variable, value, -price) %>%
+    ggplot(aes(value, price, fill=value)) + 
+      #geom_bar(position = "dodge", stat = "summary", fun.y = "mean") + 
+      geom_boxplot()+
+      scale_fill_manual(values = c("#FFDD94", "#CCABDB")) +
+      labs(x="Amenity Status", y="Price", 
+           title = i) +
+      theme(legend.position = "none")+
+  plotTheme()
+}
+
+do.call(grid.arrange,c(plotList, ncol = 3, top = "Price w/ vs. w/o Amenities"))
+```
+
+
+```{r number of amenties listed, include=FALSE, echo = TRUE, message = FALSE, warning = FALSE}
+library(stringr)
+
+details.sf <- details.sf %>% 
+  mutate(amenities.number = str_count(amenities,",")+1)
+
+```
 
 
 # New Features & Engineering
@@ -578,72 +641,8 @@ stargazer(as.data.frame(table.basic),
 ```
 
 
-Amenities
-
-```{r amenities, include=TRUE, echo = TRUE, message = FALSE, warning = FALSE}
-#pool
-details.sf <- details.sf %>%
-  mutate(pool = ifelse(str_detect(amenities, "Pool"), "Pool", "No Pool"))
-
-#Paid parking off premises
-details.sf <- details.sf %>%
-  mutate(parking = ifelse(str_detect(amenities, "Paid parking off premises"), 
-                          "Parking", "No Parking"))
-
-#Indoor fireplace
-details.sf <- details.sf %>%
-  mutate(fireplace = ifelse(str_detect(amenities, "Indoor fireplace"), 
-                          "Fireplace", "No Fireplace"))
-
-#Waterfront
-details.sf <- details.sf %>%
-  mutate(waterfront = ifelse(str_detect(amenities, "Waterfront"), 
-                          "waterfront", "No waterfront"))
-
-#Kitchen
-details.sf <- details.sf %>%
-  mutate(kitchen = ifelse(str_detect(amenities, "Kitchen"), 
-                          "kitchen", "No kitchen"))
-
-#Air conditioning
-details.sf <- details.sf %>%
-  mutate(AC = ifelse(str_detect(amenities, "Air conditioning"), 
-                          "AC", "No AC"))
-```
-
-Local amenities affect on housing price
-```{r plot amenities,fig.width=10, fig.height=6.8, include=TRUE, echo = TRUE, message = FALSE, warning = FALSE}
-amenitie_vars <- c('fireplace','waterfront','pool','parking','kitchen','AC')
-plotList <- list()
-
-for (i in amenitie_vars){
-plotList[[i]] <- 
-  details.sf %>%st_drop_geometry() %>% 
-  dplyr::select(price,i) %>%
-  filter(price<500) %>% 
-  gather(Variable, value, -price) %>%
-    ggplot(aes(value, price, fill=value)) + 
-      #geom_bar(position = "dodge", stat = "summary", fun.y = "mean") + 
-      geom_boxplot()+
-      scale_fill_manual(values = palette2) +
-      labs(x="value", y="price", 
-           title = i) +
-      theme(legend.position = "none")+
-  plotTheme()
-}
-
-do.call(grid.arrange,c(plotList, ncol = 3, top = "Amenities vs. Price"))
-```
 
 
-
-```{r number of amenties listed, include=FALSE, echo = TRUE, message = FALSE, warning = FALSE}
-library(stringr)
-
-details.sf <- details.sf %>% 
-  mutate(amenities.number = str_count(amenities,",")+1)
-
-```
 
 
 Neighborhood Effect
