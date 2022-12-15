@@ -18,9 +18,15 @@ knitr::opts_chunk$set(echo = TRUE, quiet = TRUE, warning=FALSE)
 
 # Presentation - Youtube Link 
 
+
+
 # Background Information -- Amsterdam Airbnb Market
 
+(embed several photos?)
+
 # Data Source 
+
+
 
 ```{r Load R packages, include=TRUE, echo = TRUE, message = FALSE, warning = FALSE}
 library(tidyverse)
@@ -289,11 +295,19 @@ details.sf.raw <- details.sf
 
 # Exploratory Analysis
 
+
+
 ## Price
 
 ## Occupancy
 
+## Room Composition / Characteristics
+
+
+
 ## Amenities
+
+
 
 # New Features & Engineering
 
