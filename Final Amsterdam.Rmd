@@ -650,11 +650,14 @@ listing.sf.neighbor2 <- st_intersection(listings.sf,neighbor2) %>%
   dplyr::select(id, Buurt,Buurt_code) %>% 
   mutate(count=1) %>% st_drop_geometry()
 
+listing.sf.neighbor2$id <- as.character(listing.sf.neighbor2$id)
+
 detail.sf <- left_join(details.sf,listing.sf.neighbor2, by = "id")
 ```
 
 spatial lag
 ```{r annual revenue spatial lag, include=TRUE, echo = TRUE, message = FALSE, warning = FALSE}
+
 annualrevenue<- annualrevenue %>%
   drop_na(annual_revenue)
 
@@ -908,12 +911,11 @@ annualrevenue.test     <- st_drop_geometry(annualrevenue)[-inTrain,]
 
 #### Hotspots
 
-
-
 ```{r Airbnb hotspot, fig.width=6.4, fig.height=6.0, include=TRUE, echo = TRUE, message = FALSE, warning = FALSE}
 #create fishnet
 
 amsterdam.boundary <- st_union(neighborhood) %>% st_transform('ESRI:102013')
+
 
 fishnet <- 
   st_make_grid(amsterdam.boundary, cellsize = 300) %>%
@@ -975,6 +977,12 @@ annualrevenue<- left_join(details.sf, annualrevenue,by="id")%>%
     mutate(bathrooms = as.numeric(bathrooms),
          bedrooms = as.numeric(bedrooms))
 ```
+
+
+
+
+
+
 
 ```{r numeric correlation matrix, fig.width=6.4, fig.height=6.0, include=TRUE, echo = TRUE, message = FALSE, warning = FALSE}
 numericVars <- 
