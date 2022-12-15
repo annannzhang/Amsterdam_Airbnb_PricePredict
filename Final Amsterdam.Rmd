@@ -406,8 +406,8 @@ listing.sf.neighbor2 <- st_intersection(listings.sf,neighbor2) %>%
 listings.sf <- left_join(listings.sf, listing.sf.neighbor2,by='id')
 
 neighbo2.count <- listings.sf %>% 
-  group_by(Buurt) %>% 
-  summarise(airbnb.number = sum(count)) %>% 
+  group_by(Buurt) %>%
+  dplyr::summarise(airbnb.number = sum(count)) %>% 
   dplyr::select(Buurt, airbnb.number) %>% 
   st_drop_geometry()
 
