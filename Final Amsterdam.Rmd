@@ -383,7 +383,7 @@ listing_panel <- listing_panel %>%
   filter(!listing_id %in% no_price)
 ```
 
-## Geographic Distribution 
+## 1) Geographic Distribution 
 
 
 ```{r plot the number of airbnb, fig.width=6.4, fig.height=6.0, include=TRUE, echo = TRUE, message = FALSE, warning = FALSE}
@@ -412,8 +412,8 @@ neighbor2 <- left_join(neighbor2,neighbo2.count,by="Buurt")
 ggplot()+
   geom_sf(data = neighbor2, aes(fill=q5(airbnb.number)),color='transparent')+
   scale_fill_manual(values = Purple,
-                     labels = qBr(neighbor2,'airbnb.number'),)+
-  labs(title = "Airbnb Number for Each neighborhood")+
+                     labels = qBr(neighbor2,'airbnb.number'), name = 'Count')+
+  labs(title = "Number of Airbnb per Neighborhood", subtitle = "Amsterdam, NL; 2018") +
   mapTheme()
 ```
 
@@ -424,13 +424,13 @@ ggplot()+
 neighbor2 %>% ggplot() + 
       geom_sf(aes(fill = airbnb.number), color = 'white') +
       scale_fill_gradient(low = Purple[1], high = Purple[5],
-                          name = "Airbnb Number") +
-      labs(title = "Airbnb Number for Each ZIP") +
+                          name = "Count") +
+      labs(title = "Number of Airbnb per Zipcode", subtitle = "Amsterdam, NL; 2018") +
       mapTheme()
 ```
 
 
-## Price
+## 2) Price
 
 ### Seasonality
 ```{r price change, fig.width=8, fig.height=3.8, include = TRUE, echo=TRUE, warning= FALSE, message=FALSE}
@@ -448,7 +448,7 @@ Month_price <- calendar%>%
 
 ggplot(Month_price, 
        aes(x=month, y=mean_monthly_price, group =1)) +
-  geom_line(size=1, color = "#9FE2BF") +
+  geom_line(size=1, color = Teal[3]) +
   labs(title = "Average Airbnb Price Every Month", subtitle = "Amsterdam, NL; 2018") +
   xlab("Month of the Year") + ylab("Average Price") +
   plotTheme()
@@ -464,7 +464,7 @@ details.sf <-
 
 
 ggplot()+
-  geom_sf(data = neighborhood,fill='grey90',color = 'white')+
+  geom_sf(data = neighborhood,fill='grey95',color = 'white')+
   geom_sf(data = details.sf, aes(colour=q5(priceBed)),size=.5)+
   scale_color_manual(values = Teal,
                      labels = qBr(details.sf,'priceBed'), name="Price per Bed (Euro)")+
@@ -476,7 +476,7 @@ ggplot()+
 ```
 
 
-## Occupancy
+## 3) Occupancy
 
 ```{r occupancy, fig.width=8, fig.height=3.8, include = TRUE, echo=TRUE, warning=FALSE, message=FALSE}
 index <- function(x, flag = '0') {
@@ -508,11 +508,11 @@ ggplot(monthly_occupancy,
 ```
 
 
-## Room Composition / Characteristics
+## 4) Composition / Characteristics
 
 
 
-## Amenities
+## 5) Amenities
 
 
 
@@ -528,6 +528,20 @@ ggplot(monthly_occupancy,
 # Regression Model
 
 ## Data Split: Testing & Training
+
+```{r annual revenue regression, include=TRUE, echo = TRUE, message = FALSE, warning = FALSE}
+annualrevenue <- merge(annualrevenue,listing.sf.neighbor2[c("id", "Buurt")], by = "id")
+
+#Split training and test set
+set.seed(31497)
+
+inTrain <- caret::createDataPartition(
+  y = st_drop_geometry(annualrevenue)$annual_revenue, 
+  p = .6, list = FALSE)
+
+annualrevenue.training <- st_drop_geometry(annualrevenue)[inTrain,]
+annualrevenue.test     <- st_drop_geometry(annualrevenue)[-inTrain,]
+```
 
 
 ## Regression Results 
@@ -545,11 +559,6 @@ ggplot(monthly_occupancy,
 
 
 
-
-
-
-
-Plot airbnb by smaller neighborhood
 
 
 
@@ -985,19 +994,8 @@ ggplot(annualrevenue)+
 ```
 
 # Regression
-```{r annual revenue regression, include=TRUE, echo = TRUE, message = FALSE, warning = FALSE}
-annualrevenue <- merge(annualrevenue,listing.sf.neighbor2[c("id", "Buurt")], by = "id")
 
-#Split training and test set
-set.seed(31497)
-
-inTrain <- caret::createDataPartition(
-  y = st_drop_geometry(annualrevenue)$annual_revenue, 
-  p = .6, list = FALSE)
-
-annualrevenue.training <- st_drop_geometry(annualrevenue)[inTrain,]
-annualrevenue.test     <- st_drop_geometry(annualrevenue)[-inTrain,]
-
+```{r}
 
 reg.annualrevenue <- lm(annual_revenue ~ ., data = st_drop_geometry(annualrevenue) %>% 
              dplyr::select(annual_revenue,beds, bedrooms, bathrooms, accommodates,
