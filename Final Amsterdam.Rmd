@@ -557,18 +557,20 @@ plotList[[i]] <-
   filter(price<500) %>% 
   gather(Variable, value, -price) %>%
     ggplot(aes(value, price, fill=value)) + 
-      #geom_bar(position = "dodge", stat = "summary", fun.y = "mean") + 
-      geom_boxplot()+
+      geom_boxplot() +
       scale_fill_manual(values = c("#FFDD94", "#CCABDB")) +
-      labs(x="Amenity Status", y="Price", 
+      labs(x="Amenity Status", y="Price",
            title = i) +
-      theme(legend.position = "none")+
+      theme(legend.position = "none") +
   plotTheme()
 }
 
 do.call(grid.arrange,c(plotList, ncol = 3, top = "Price w/ vs. w/o Amenities"))
 ```
 
+### Aggregated Amenities:
+
+In addition to each amenities listed above, we also included a feature named 'amenities.number' to explore the aggregated effect of amenities. Sometimes, regardless of specific types of amenities, simply the fact of having multiple amenities may increase the price visitors are willing to pay for an Airbnb. 
 
 ```{r number of amenties listed, include=FALSE, echo = TRUE, message = FALSE, warning = FALSE}
 library(stringr)
@@ -582,6 +584,55 @@ details.sf <- details.sf %>%
 # New Features & Engineering
 
 ## New Feature 1: Spatial Lag & Neighborhood Effect
+
+Neighborhood Effect
+
+```{r Neighborhood Effect, include=TRUE, echo = TRUE, message = FALSE, warning = FALSE }
+details.sf.neighbor <- st_intersection(details.sf,zipcode4) %>% 
+  dplyr::select(id, Postcode4) %>% 
+  st_drop_geometry()
+
+details.sf <- left_join(details.sf,details.sf.neighbor,by='id')
+
+```
+
+
+```{r neighbor effect2 , include=TRUE, echo = TRUE, message = FALSE, warning = FALSE}
+neighbor2 <- neighbor2 %>% 
+  st_transform(st_crs(listings.sf))
+
+listing.sf.neighbor2 <- st_intersection(listings.sf,neighbor2) %>% 
+  dplyr::select(id, Buurt,Buurt_code) %>% 
+  mutate(count=1) %>% st_drop_geometry()
+
+detail.sf <- left_join(details.sf,listing.sf.neighbor2, by = "id")
+```
+
+spatial lag
+```{r annual revenue spatial lag, include=TRUE, echo = TRUE, message = FALSE, warning = FALSE}
+annualrevenue<- annualrevenue %>%
+  drop_na(annual_revenue)
+
+coords <- st_coordinates(annualrevenue) 
+
+neighborList <- knn2nb(knearneigh(coords, 5))
+
+spatialWeights <- nb2listw(neighborList, style="W")
+
+
+
+annualrevenue$lagRevenue <- lag.listw(spatialWeights, annualrevenue$annual_revenue)
+
+```
+
+```{r annual revenue & spatial lag plot, include=TRUE, echo = TRUE, message = FALSE, warning = FALSE}
+ggplot(annualrevenue)+
+  geom_point(aes(x = lagRevenue, y = annual_revenue), alpha = 0.26)+
+  geom_smooth(aes(x = lagRevenue, y =annual_revenue), method = "lm", se= FALSE, color = "orange")+
+  labs(title="Revenue as a function of lagRevenue",
+      caption = "Figure xx. Scatterplots of revenue and lagRevenue")+
+  plotTheme()
+```
 
 ## New Feature 2: Access to Metro Station
 
@@ -645,30 +696,6 @@ stargazer(as.data.frame(table.basic),
 
 
 
-Neighborhood Effect
-
-
-
-```{r Neighborhood Effect, include=TRUE, echo = TRUE, message = FALSE, warning = FALSE }
-details.sf.neighbor <- st_intersection(details.sf,zipcode4) %>% 
-  dplyr::select(id, Postcode4) %>% 
-  st_drop_geometry()
-
-details.sf <- left_join(details.sf,details.sf.neighbor,by='id')
-
-```
-
-
-```{r neighbor effect2 , include=TRUE, echo = TRUE, message = FALSE, warning = FALSE}
-neighbor2 <- neighbor2 %>% 
-  st_transform(st_crs(listings.sf))
-
-listing.sf.neighbor2 <- st_intersection(listings.sf,neighbor2) %>% 
-  dplyr::select(id, Buurt,Buurt_code) %>% 
-  mutate(count=1) %>% st_drop_geometry()
-
-detail.sf <- left_join(details.sf,listing.sf.neighbor2, by = "id")
-```
 
 
 External Features
@@ -966,31 +993,6 @@ annualrevenue<- left_join(details.sf, annualrevenue,by="id")%>%
     filter(!id %in% no_price)
 ```
 
-# spatial lag
-```{r annual revenue spatial lag, include=TRUE, echo = TRUE, message = FALSE, warning = FALSE}
-annualrevenue<- annualrevenue %>%
-  drop_na(annual_revenue)
-
-coords <- st_coordinates(annualrevenue) 
-
-neighborList <- knn2nb(knearneigh(coords, 5))
-
-spatialWeights <- nb2listw(neighborList, style="W")
-
-
-
-annualrevenue$lagRevenue <- lag.listw(spatialWeights, annualrevenue$annual_revenue)
-
-```
-
-```{r annual revenue & spatial lag plot, include=TRUE, echo = TRUE, message = FALSE, warning = FALSE}
-ggplot(annualrevenue)+
-  geom_point(aes(x = lagRevenue, y = annual_revenue), alpha = 0.26)+
-  geom_smooth(aes(x = lagRevenue, y =annual_revenue), method = "lm", se= FALSE, color = "orange")+
-  labs(title="Revenue as a function of lagRevenue",
-      caption = "Figure xx. Scatterplots of revenue and lagRevenue")+
-  plotTheme()
-```
 
 # Regression
 
