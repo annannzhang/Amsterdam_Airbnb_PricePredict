@@ -292,6 +292,7 @@ details.sf$review_scores_accuracy <- as.numeric(details.sf$review_scores_accurac
 details.sf$review_scores_cleanliness<- as.numeric(details.sf$review_scores_cleanliness)
 details.sf$review_scores_value <- as.numeric(details.sf$review_scores_value)
 details.sf$reviews_per_month <- as.numeric(details.sf$reviews_per_month)
+detail.sf$id <- as.character(details.sf$id)
 
 details.sf.raw <- details.sf
 ```
@@ -511,7 +512,6 @@ ggplot(monthly_occupancy,
 ## 4) Composition / Characteristics
 
 
-Feature summary
 ```{r basic features, include=TRUE, echo = TRUE, message = FALSE, warning = FALSE}
 
 table.basic <- details.sf %>% 
@@ -523,6 +523,18 @@ stargazer(as.data.frame(table.basic),
           title ="Table 1. Basic Features Summary",
           single.row = TRUE,
           out.header = TRUE)
+
+```
+
+
+```{r include=TRUE}
+
+details.sf %>%
+  st_drop_geometry() %>%
+  group_by(beds, bathrooms, bedrooms, accommodates, property_type) %>%
+  summarize(Mean_Price = mean(price)) %>%
+  kable() %>%
+  kable_styling()
 
 ```
 
@@ -652,57 +664,6 @@ ggplot(annualrevenue)+
 
 ## New Feature 2: Access to Metro Station
 
-## New Feature 3: Proximity to Tourist Spots
-
-
-# Regression Model
-
-## Data Split: Testing & Training
-
-```{r annual revenue regression, include=TRUE, echo = TRUE, message = FALSE, warning = FALSE}
-annualrevenue <- merge(annualrevenue,listing.sf.neighbor2[c("id", "Buurt")], by = "id")
-
-#Split training and test set
-set.seed(31497)
-
-inTrain <- caret::createDataPartition(
-  y = st_drop_geometry(annualrevenue)$annual_revenue, 
-  p = .6, list = FALSE)
-
-annualrevenue.training <- st_drop_geometry(annualrevenue)[inTrain,]
-annualrevenue.test     <- st_drop_geometry(annualrevenue)[-inTrain,]
-```
-
-
-## Regression Results 
-
-
-# Cross Validation
-
-
-# Conclusion
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-External Features
-
-Distance to metro stations
 
 
 ```{r Distance to metro, fig.width=6.4, fig.height=6.0, include=TRUE, echo = TRUE, message = FALSE, warning = FALSE}
@@ -747,11 +708,11 @@ ggplot()+
   mapTheme
 ```
 
+## New Feature 3: Proximity to Tourist Amenities 
+
 
 
 ```{r outside attractions,  include=TRUE, echo = TRUE, message = FALSE, warning = FALSE}
-
-
 unesco <-
   #st_read('UnescoWerelderfgoed_region.shp') %>%
   st_read('geojson_lnglat.json') %>%
@@ -771,8 +732,6 @@ parks <- attraction %>%
 
 museum <- attraction %>% 
   filter(subCategory == 'Museum')
-
-
 
 ```
 
@@ -827,7 +786,6 @@ nightclub <- attraction %>%
 
 ```
 
-amenities and attractions
 
 ```{r calculate distance to amenities & attractions , include=TRUE, echo = TRUE, message = FALSE, warning = FALSE}
 details.sf <- details.sf%>%
@@ -895,6 +853,40 @@ details.sf <- left_join(details.sf,details.sf.unesco,by='id')
 details.sf$Unesco <- tidyr::replace_na(details.sf$Unesco,'outside')
 
 ```
+
+
+# Regression Model
+
+## Data Split: Testing & Training
+
+```{r annual revenue regression, include=TRUE, echo = TRUE, message = FALSE, warning = FALSE}
+annualrevenue <- merge(annualrevenue,listing.sf.neighbor2[c("id", "Buurt")], by = "id")
+
+#Split training and test set
+set.seed(31497)
+
+inTrain <- caret::createDataPartition(
+  y = st_drop_geometry(annualrevenue)$annual_revenue, 
+  p = .6, list = FALSE)
+
+annualrevenue.training <- st_drop_geometry(annualrevenue)[inTrain,]
+annualrevenue.test     <- st_drop_geometry(annualrevenue)[-inTrain,]
+```
+
+
+## Regression Results 
+
+
+# Cross Validation
+
+
+# Conclusion
+
+
+
+
+
+
 
 
 #### Hotspots
