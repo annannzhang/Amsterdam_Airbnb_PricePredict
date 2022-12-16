@@ -17,7 +17,15 @@ knitr::opts_chunk$set(echo = TRUE, quiet = TRUE, warning=FALSE)
 
 # Presentation - Youtube Link
 
+Please refer to our presentation video for executive summary of this project/app. 
+
+https://youtu.be/6dixtgleyY0
+
+
 # Background Information -- Amsterdam Airbnb Market
+
+
+
 
 (embed several photos?)
 
@@ -380,6 +388,13 @@ listing_panel <- listing_panel %>%
 
 ## 1) Geographic Distribution
 
+Firstly, identifying 'hotspots' would be helpful to have an overview of the Airbnb market in Amsterdam. On the one hand, the existing units are usually located in areas where tourists would want to stay, which equates to decent demand. On the other hand, adequate supply means there may be a competition in the market. 
+
+Given city government's concern with too many Airbnb (short-term rental) concentrating in central historic areas, the maps below also help demonstrating how the market indeed is crammed in the central area. 
+
+We choose to examin the distrbution at two scales -- neighborhood (identified by City of Amsterdam) and zipcode areas (smaller scale). Both maps show that many Airbnb are located along the canals, which is usually deemed signature of Amsterdam. 
+
+
 ```{r plot the number of airbnb, fig.width=6.4, fig.height=6.0, include=TRUE, echo = TRUE, message = FALSE, warning = FALSE}
 sf_use_s2(FALSE)
 listings.sf<- listings %>% 
@@ -422,48 +437,11 @@ neighbor2 %>% ggplot() +
       mapTheme()
 ```
 
-Hotspots Fishnet
-
-```{r Airbnb hotspot, fig.width=6.4, fig.height=6.0, include=TRUE, echo = TRUE, message = FALSE, warning = FALSE}
-#create fishnet
-
-amsterdam.boundary <- st_union(neighborhood) %>% st_transform('ESRI:102013')
-
-fishnet <- 
-  st_make_grid(amsterdam.boundary, cellsize = 300) %>%
-    .[amsterdam.boundary] %>%
-  st_sf() %>%
-  mutate(uniqueID = rownames(.))
-
-fishnet <- fishnet %>% 
-  mutate(uniqueID = rownames(.))
-
-fishnet.count <- st_intersection(listings.sf,fishnet) %>% 
-  mutate(count = 1) %>% 
-  st_drop_geometry() %>% 
-  dplyr::select(uniqueID, count) %>% 
-  group_by(uniqueID) %>% 
-  summarise(countairbnb = sum(count))
-
-airbnb_net <- 
-  dplyr::select(listings.sf) %>% 
-  mutate(countairbnb = 1) %>% 
-  aggregate(., fishnet, sum)
-
-airbnb_net <- airbnb_net %>% 
-  mutate(countairbnb = tidyr::replace_na(countairbnb,0),
-         uniqueID = row.names(.))
-
-ggplot() +
-  geom_sf(data = airbnb_net, aes(fill = countairbnb), color = NA) +
-  scale_fill_viridis() +
-  labs(title = "Count of airbnb for the fishnet") +
-  mapTheme()
-```
 
 ## 2) Price
 
 ### Seasonality
+
 
 ```{r price change, fig.width=8, fig.height=3.8, include = TRUE, echo=TRUE, warning= FALSE, message=FALSE}
 Month_price <- calendar%>%
@@ -560,7 +538,8 @@ stargazer(as.data.frame(table.basic),
 ```{r}
 count(details.sf$property_type) %>%
   kable() %>%
-  kable_styling() 
+  kable_styling() %>%
+  scroll_box(width = "800px", height = "200px")
 
 ```
 
@@ -573,7 +552,8 @@ details.sf %>%
   group_by(beds, bathrooms, bedrooms, accommodates, property_type) %>%
   dplyr::summarize(Mean_Price = mean(price)) %>%
   kable() %>%
-  kable_styling()
+  kable_styling() %>%
+  scroll_box(width = "800px", height = "200px")
 
 ```
 
@@ -645,6 +625,10 @@ details.sf <- details.sf %>%
 ```
 
 # New Features & Engineering
+
+In addition to internal features that we examined earlier, we also want to take some external factors that are critical for tourists into considerations -- the neighborhood (area), distance to public transit stops, and distance to some tourists attractions (e.g. museums) and external amenities (supermarkets and convenience shops). As tourists can benefit a lot from close proximity to sites they want to visit or amenities, the price may go up for those units that are closer to those places. 
+
+
 
 ## New Feature 1: Spatial Lag & Neighborhood Effect
 
@@ -810,6 +794,239 @@ annualrevenue <-
 
 ## New Feature 3: Proximity to Tourist Amenities
 
+```{r outside attractions,  include=TRUE, echo = TRUE, message = FALSE, warning = FALSE, results='hide'}
+unesco <-
+  #st_read('UnescoWerelderfgoed_region.shp') %>%
+  st_read('geojson_lnglat.json') %>%
+  st_transform('ESRI:102013')
+
+parks <- st_read('parks.json') %>% 
+  st_transform('ESRI:102013')
+
+attraction <- st_read('amsterdam-attraction.csv') %>% 
+  filter(lat != 'attraction')
+attraction <- st_as_sf(attraction,coords = c('lng','lat'),crs = 4326) %>% 
+  st_transform('ESRI:102013')
+
+parks <- attraction %>% 
+  filter(subCategory == 'Park')
+
+museum <- attraction %>% 
+  filter(subCategory == 'Museum')
+
+```
+
+```{r outside amenities , include=TRUE, echo = TRUE, message = FALSE, warning = FALSE}
+
+#supermarkets
+supermarkets <- getbb('Amsterdam') %>% 
+  opq() %>% 
+  add_osm_feature('shop','supermarket') %>% 
+  osmdata_sf() 
+supermarkets <- supermarkets$osm_points %>% 
+  dplyr::select(geometry)%>% 
+  st_transform('ESRI:102013')%>% 
+  dplyr::select(geometry) %>% 
+  mutate(Legend = "supermarkets")
+
+convenienceshop <- getbb('Amsterdam') %>% 
+  opq() %>% 
+  add_osm_feature('shop','convenience') %>% 
+  osmdata_sf() 
+convenienceshop <- convenienceshop$osm_points %>% 
+  dplyr::select(geometry)%>% 
+  st_transform('ESRI:102013')%>% 
+  dplyr::select(geometry) %>% 
+  mutate(Legend = "convenienceshop")
+
+mall <- getbb('Amsterdam') %>% 
+  opq() %>% 
+  add_osm_feature('shop','mall') %>% 
+  osmdata_sf() 
+mall<- mall$osm_points %>% 
+  dplyr::select(geometry)%>% 
+  st_transform('ESRI:102013') %>% 
+  dplyr::select(geometry) %>% 
+  mutate(Legend = "mall")
+
+
+attraction <- st_as_sf(attraction,coords = c('lng','lat'),crs = 4326) %>% 
+  st_transform('ESRI:102013')
+
+
+plaza <- attraction %>% 
+  filter(subCategory == 'Plaza') 
+
+
+beach <- attraction %>% 
+  filter(subCategory == 'Beach') 
+
+
+nightclub <- attraction %>% 
+  filter(subCategory == 'Nightclub') 
+
+```
+
+```{r calculate distance to amenities & attractions , include=TRUE, echo = TRUE, message = FALSE, warning = FALSE}
+
+dist <- 1000
+
+details.sf.c.attractions <- details.sf %>%
+  dplyr::select(id)
+
+#malls
+mallBuffer <- st_union(st_buffer(mall, dist))%>%
+    st_sf()
+
+details.sf.c.attractions <- 
+  rbind(
+    details.sf.c[mallBuffer,] %>%
+      st_drop_geometry() %>%
+      left_join(details.sf.c.attractions) %>%
+      st_sf() %>%
+      mutate(mall.close = "y"),
+    details.sf.c[mallBuffer, op = st_disjoint] %>%
+      st_drop_geometry() %>%
+      left_join(details.sf.c.attractions) %>%
+      st_sf() %>%
+      mutate(mall.close = "n"))
+  
+#supermarkets
+supermarketsBuffer <- st_union(st_buffer(supermarkets, dist))%>%
+    st_sf()
+
+details.sf.c.attractions <- 
+  rbind(
+    details.sf.c[supermarketsBuffer,] %>%
+      st_drop_geometry() %>%
+      left_join(details.sf.c.attractions) %>%
+      st_sf() %>%
+      mutate(supermarkets.close = "y"),
+    details.sf.c[supermarketsBuffer, op = st_disjoint] %>%
+      st_drop_geometry() %>%
+      left_join(details.sf.c.attractions) %>%
+      st_sf() %>%
+      mutate(supermarkets.close = "n"))
+
+#dist.convenienceshop
+
+details.sf.c.attractions <- 
+  rbind(
+    details.sf.c[st_union(st_buffer(convenienceshop, dist)),] %>%
+      st_drop_geometry() %>%
+      left_join(details.sf.c.attractions) %>%
+      st_sf() %>%
+      mutate(convenienceshop.close = "y"),
+    details.sf.c[st_union(st_buffer(convenienceshop, dist)), op = st_disjoint] %>%
+      st_drop_geometry() %>%
+      left_join(details.sf.c.attractions) %>%
+      st_sf() %>%
+      mutate(convenienceshop.close = "n"))
+
+#dist.museum
+details.sf.c.attractions <- 
+  rbind(
+    details.sf.c[st_union(st_buffer(museum, dist)),] %>%
+      st_drop_geometry() %>%
+      left_join(details.sf.c.attractions) %>%
+      st_sf() %>%
+      mutate(museum.close = "y"),
+    details.sf.c[st_union(st_buffer(museum, dist)), op = st_disjoint] %>%
+      st_drop_geometry() %>%
+      left_join(details.sf.c.attractions) %>%
+      st_sf() %>%
+      mutate(museum.close = "n"))
+
+#dist.plaza
+details.sf.c.attractions <- 
+  rbind(
+    details.sf.c[st_union(st_buffer(plaza, dist)),] %>%
+      st_drop_geometry() %>%
+      left_join(details.sf.c.attractions) %>%
+      st_sf() %>%
+      mutate(plaza.close = "y"),
+    details.sf.c[st_union(st_buffer(plaza, dist)), op = st_disjoint] %>%
+      st_drop_geometry() %>%
+      left_join(details.sf.c.attractions) %>%
+      st_sf() %>%
+      mutate(plaza.close = "n"))
+
+#dist.nightclub
+details.sf.c.attractions <- 
+  rbind(
+    details.sf.c[st_union(st_buffer(nightclub, dist)),] %>%
+      st_drop_geometry() %>%
+      left_join(details.sf.c.attractions) %>%
+      st_sf() %>%
+      mutate(nightclub.close = "y"),
+    details.sf.c[st_union(st_buffer(nightclub, dist)), op = st_disjoint] %>%
+      st_drop_geometry() %>%
+      left_join(details.sf.c.attractions) %>%
+      st_sf() %>%
+      mutate(nightclub.close = "n"))
+
+#dist.beach
+details.sf.c.attractions <- 
+  rbind(
+    details.sf.c[st_union(st_buffer(beach, dist)),] %>%
+      st_drop_geometry() %>%
+      left_join(details.sf.c.attractions) %>%
+      st_sf() %>%
+      mutate(beach.close = "y"),
+    details.sf.c[st_union(st_buffer(beach, dist)), op = st_disjoint] %>%
+      st_drop_geometry() %>%
+      left_join(details.sf.c.attractions) %>%
+      st_sf() %>%
+      mutate(beach.close = "n"))
+
+#dist.parks
+details.sf.c.attractions <- 
+  rbind(
+    details.sf.c[st_union(st_buffer(parks, dist)),] %>%
+      st_drop_geometry() %>%
+      left_join(details.sf.c.attractions) %>%
+      st_sf() %>%
+      mutate(parks.close = "y"),
+    details.sf.c[st_union(st_buffer(parks, dist)), op = st_disjoint] %>%
+      st_drop_geometry() %>%
+      left_join(details.sf.c.attractions) %>%
+      st_sf() %>%
+      mutate(parks.close = "n"))
+
+details.sf.attractions <-
+  left_join(details.sf, st_drop_geometry(details.sf.c.attractions), by="id")
+
+```
+
+```{r}
+table.distance <- details.sf.attractions %>% 
+  st_drop_geometry() %>% 
+  dplyr::select(price.y, museum.close,plaza.close,nightclub.close,beach.close,
+                  supermarkets.close, parks.close, mall.close, convenienceshop.close)
+
+table.distance %>%
+  gather(Variable, value, -price.y) %>%
+    ggplot(aes(value, price.y, fill=value)) + 
+      geom_bar(position = "dodge", stat = "summary", fun = "mean") + 
+      facet_wrap(~Variable, scales = "free") +
+      scale_fill_manual(values = palette2) +
+      labs(x="Within 1KM?", y="Average Price", 
+           title = "Feature Associations with Proximity to Attractions",
+           subtitle = "Amsterdam Airbnbs, 2018") +
+      theme(legend.position = "none")
+```
+
+```{r}
+
+
+annualrevenue <-
+  annualrevenue %>%
+  left_join(details.sf.c.attractions %>% st_drop_geometry %>% dplyr::select(id, convenienceshop.close, mall.close, museum.close, plaza.close, supermarkets.close), by = 'id')
+
+```
+
+
+
 # Feature Review: Correlation Matrix
 
 ```{r numeric correlation matrix, fig.width=6.4, fig.height=6.0, include=TRUE, echo = TRUE, message = FALSE, warning = FALSE}
@@ -829,6 +1046,8 @@ ggcorrplot(
 ```
 
 # Regression Model
+
+We are using linear regression model for this machine learning task. 
 
 ## Data Split: Testing & Training
 
@@ -857,7 +1076,7 @@ reg.annualrevenue <- lm(price ~ ., data = st_drop_geometry(annualrevenue) %>%
              dplyr::select(price, beds, bedrooms, bathrooms, accommodates,
                               pool, parking, kitchen, AC, fireplace,
                               room_type,property_type,bed_type, Buurt,
-                              minimum_nights,
+                              minimum_nights, convenienceshop.close, mall.close, museum.close, plaza.close, supermarkets.close,
                               amenities.number,lagRevenue, metro.dist)) 
 
 stargazer(reg.annualrevenue,
