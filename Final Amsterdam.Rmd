@@ -1076,7 +1076,8 @@ reg.annualrevenue <- lm(price ~ ., data = st_drop_geometry(annualrevenue) %>%
              dplyr::select(price, beds, bedrooms, bathrooms, accommodates,
                               pool, parking, kitchen, AC, fireplace,
                               room_type,property_type,bed_type, Buurt,
-                              minimum_nights, convenienceshop.close, mall.close, museum.close, plaza.close, supermarkets.close,
+                              minimum_nights, convenienceshop.close, mall.close, museum.close,
+                              plaza.close, supermarkets.close,
                               amenities.number,lagRevenue, metro.dist)) 
 
 stargazer(reg.annualrevenue,
@@ -1105,23 +1106,7 @@ test_result %>%
   kable_styling("striped", full_width = F)
 ```
 
-```{r annual revenue regression plot, include=TRUE, echo = TRUE, message = FALSE, warning = FALSE}
-ggplot(annualrev_predict_test,
-         aes(x=APE)) + 
-  labs(title = "APE Distribution",caption = "Figure XX. A histogram of APE") +
-  geom_histogram()+
-  plotTheme()
-```
 
-```{r}
-
-ggplot(annualrev_predict_test %>%
-        filter(APE<1.5),
-         aes(x=APE)) + 
-  labs(title = "APE Distribution",caption = "Figure XX. A histogram of APE") +
-  geom_histogram()+
-  plotTheme()
-```
 
 ```{r  annual revenue regression plot by Buurt, include=TRUE, echo = TRUE, message = FALSE, warning = FALSE}
 palette5 <- c("#ffffd4", "#fed98e", "#fe9929", "#d95f0e", "#993404")
@@ -1145,13 +1130,17 @@ annualrev_predict_test%>%
 
 # Cross Validation: LOGO (Leave One Group Out)
 
+LOGO (Leave One Group Out) is a type of cross validation that is similar to K-fold but takes spatial aspects into consideration -- taking one neighborhood out at a time for cross validating. Since the airbnb location is critical in this project, we think LOGO would be a more suitable way for testing out our model. Here we use 481 'buurt (buurten)' (neighborhood in dutch) defined by the city. 
+
 ```{r results='hide', message=FALSE, warning=FALSE}
 
 
 reg.vars <- c("beds", "bedrooms", "bathrooms", "accommodates",
                               "pool", "parking", "kitchen", "AC", "fireplace",
                               "room_type",  "bed_type",
-                              "amenities.number","lagRevenue")
+                              "amenities.number","lagRevenue", "convenienceshop.close", "mall.close",
+                              "museum.close",
+                              "plaza.close", "supermarkets.close")
 
 airbnb.location <- details.sf %>% dplyr::select(id)
 
@@ -1188,6 +1177,8 @@ st_drop_geometry(error_by_reg_and_fold) %>%
     kable_styling("striped", full_width = F) 
 
 ```
+
+From the LOGO-CV result, 
 
 ```{r}
 
