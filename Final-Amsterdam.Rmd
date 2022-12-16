@@ -797,6 +797,7 @@ supermarkets <- getbb('Amsterdam') %>%
   opq() %>% 
   add_osm_feature('shop','supermarket') %>% 
   osmdata_sf() 
+
 supermarkets <- supermarkets$osm_points %>% 
   dplyr::select(geometry)%>% 
   st_transform('ESRI:102013')%>% 
@@ -807,6 +808,7 @@ convenienceshop <- getbb('Amsterdam') %>%
   opq() %>% 
   add_osm_feature('shop','convenience') %>% 
   osmdata_sf() 
+
 convenienceshop <- convenienceshop$osm_points %>% 
   dplyr::select(geometry)%>% 
   st_transform('ESRI:102013')%>% 
@@ -817,12 +819,12 @@ mall <- getbb('Amsterdam') %>%
   opq() %>% 
   add_osm_feature('shop','mall') %>% 
   osmdata_sf() 
+
 mall<- mall$osm_points %>% 
   dplyr::select(geometry)%>% 
   st_transform('ESRI:102013') %>% 
   dplyr::select(geometry) %>% 
   mutate(Legend = "mall")
-
 
 attraction <- st_as_sf(attraction,coords = c('lng','lat'),crs = 4326) %>% 
   st_transform('ESRI:102013')
