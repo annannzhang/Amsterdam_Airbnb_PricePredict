@@ -14,7 +14,7 @@ output:
 ```{r setup, include=FALSE, message = FALSE,warning = FALSE, echo = FALSE}
 knitr::opts_chunk$set(echo = TRUE, quiet = TRUE, warning=FALSE)
 ```
-![Amsterdam's Canels, Wikipedia.](https://en.wikipedia.org/wiki/Amsterdam#/media/File:KeizersgrachtReguliersgrachtAmsterdam.jpg)
+![Amsterdam's Canels, Wikipedia.](https://www.tripsavvy.com/thmb/WHLAB8cOtR6xLYohG0BwqmTfyLc=/1500x0/filters:no_upscale():max_bytes(150000):strip_icc()/GettyImages-552050827-5bd6e5bcc9e77c0026a2d26d.jpg)
 
 
 # Presentation - Youtube Link
@@ -121,47 +121,6 @@ qBr2 <- function(df, variable, rnd) {
 }
 
 q5 <- function(variable) {as.factor(ntile(variable, 5))}
-
-plotTheme <- function(base_size = 12) {
-  theme(
-    text = element_text( color = "black"),
-    plot.title = element_text(size = 14,colour = "black"),
-    plot.subtitle = element_text(face="italic"),
-    plot.caption = element_text(hjust=0),
-    axis.ticks = element_blank(),
-    panel.background = element_blank(),
-    panel.grid.major = element_line("grey80", size = 0.1),
-    panel.grid.minor = element_blank(),
-    panel.border = element_rect(colour = "black", fill=NA, size=2),
-    strip.background = element_rect(fill = "grey80", color = "white"),
-    strip.text = element_text(size=12),
-    axis.title = element_text(size=12),
-    axis.text = element_text(size=10),
-    plot.background = element_blank(),
-    legend.background = element_blank(),
-    legend.title = element_text(colour = "black", face = "italic"),
-    legend.text = element_text(colour = "black", face = "italic"),
-    strip.text.x = element_text(size = 14)
-  )
-}
-
-mapTheme <- theme(plot.title =element_text(size=12),
-                  plot.subtitle = element_text(size=8),
-                  plot.caption = element_text(size = 8),
-                  axis.line=element_blank(),
-                  axis.text.x=element_blank(),
-                  axis.text.y=element_blank(),
-                  axis.ticks=element_blank(),
-                  axis.title.x=element_blank(),
-                  axis.title.y=element_blank(),
-                  panel.background=element_blank(),
-                  panel.border = element_rect(colour = "black", fill=NA, size=2),
-                  panel.grid.major=element_line(colour = 'grey92'),
-                  panel.grid.minor=element_blank(),
-                  legend.direction = "vertical", 
-                  legend.position = "right",
-                  plot.margin = margin(1, 1, 1, 1, 'cm'),
-                  legend.key.height = unit(1, "cm"), legend.key.width = unit(0.2, "cm"))
 
 ```
 
