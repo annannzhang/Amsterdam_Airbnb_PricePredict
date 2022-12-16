@@ -648,7 +648,11 @@ In addition to internal features that we examined earlier, we also want to take 
 
 ## New Feature 1: Spatial Lag & Neighborhood Effect
 
+There is a subtle difference between neighborhood effect -- spatial lag takes the price / revenue of surrounding areas and use the spatial lag revenue as a factor for pricing; neighborhood effect considers the spatial aspects and use neighborhood as a factor, since the location of a unit may silently speak for many other factors that may impact the price. Here we are considering both. 
+
 ### Neighborhood Effect
+
+To account for neighborhood effect, we used the smaller scale 481 neighborhood system instead of the larger districts to increase precision. 
 
 ```{r Neighborhood Effect, include=TRUE, echo = TRUE, message = FALSE, warning = FALSE }
 details.sf.neighbor <- st_intersection(details.sf,zipcode4) %>% 
@@ -673,6 +677,8 @@ detail.sf <- left_join(details.sf,listing.sf.neighbor2, by = "id")
 ```
 
 ### Spatial Lag
+
+To calculate spatial lag, we used revenue instead of price because while price may be a subjective decision by the host, revenue speaks more about the market and how this area is doing in terms of profitability. Whether or not a host is likely to profit may impact their business decisions. 
 
 ```{r occupancy join, include=TRUE, echo = TRUE, message = FALSE, warning = FALSE}
 occupancy3 <- occupancy %>%
@@ -722,13 +728,19 @@ annualrevenue$lagRevenue <- lag.listw(spatialWeights, annualrevenue$annual_reven
 
 ```{r annual revenue & spatial lag plot, include=TRUE, echo = TRUE, message = FALSE, warning = FALSE}
 ggplot(annualrevenue)+
-  geom_point(aes(x = lagRevenue, y = annual_revenue), alpha = 0.26)+
-  geom_smooth(aes(x = lagRevenue, y =annual_revenue), method = "lm", se= FALSE, color = "orange")+
-  labs(title="Annual Revenue as a function of lagRevenue", y='Annual Revenue', x = 'Lag Annual Revenue') +
+  geom_point(aes(x = price, y = annual_revenue), alpha = 0.26)+
+  geom_smooth(aes(x = price, y =annual_revenue), method = "lm", se= FALSE, color = "orange")+
+  labs(title="Price as a function of lagRevenue", y='Price', x = 'Lag Annual Revenue') +
   plotTheme()
 ```
 
+The graph above shows price as function of lag annual revenue. We can recognize a clear positive correlation from this graph -- the more money neighboring Airbnb makes, the higher an Airbnb is tend to price since they may have the confidence of having sufficient demand. We therefore also included lagRevenue into our model. 
+
 ## New Feature 2: Access to Public Transit
+
+The second set of features is the proximity to public transit. We first plotted the existing metro and tram stations in the city. We can see a pretty clear pattern of higher density of Aibnb near stations. But, does it matter when it comes to pricing?
+
+This also hints that if the government are to generate new policies for encouraging development in other areas, including directing more Airbnb hosts to rent out units in peripheral areas, they may need to solve the public transit accessibility issue first.
 
 ```{r}
 listings$longitude = as.numeric(listings$longitude)
@@ -794,9 +806,12 @@ ggplot(data=details.Rings.Summary, aes(x=metro.dist, y=Price),)+
   labs(title = "Price as a Function of Distance from a Metro Station", 
        subtitle = "Amsterdam Airbnb Data, 2018", 
        x="Distance from a Metro Station (KM)",
-       y="Rent (2018 Euro)")+
+       y="Price (2018 Euro)")+
   theme(plot.title = element_text(size=18))
 ```
+
+The plot above shows an interesting pattern of the relationship between price and distance from metro station. we can see a declining trend from the closest to station to around 4.5 km, then a striking increase in price. This could be due to the fact that after 4.5 it falls into the close proximity to another station, hence the price is risen again. The dramatic ups and downs also signals that it might be a valid factor for pricing. 
+
 
 ```{r}
 
@@ -809,6 +824,8 @@ annualrevenue <-
 
 
 ## New Feature 3: Proximity to Tourist Amenities
+
+The third set of features we look at are tourist amenities, including UNESCO sites, parks, tourist attractions, museums, malls, convenience shops, plazas, and supermarkets. They are either possible incentives for tourists or just amenities for convenience / daily shopping. Given the fact that Airbnb is unlike hotel where all kinds of services are provided, tourists staying at Airbnb may be visiting shopping facilities more frequently to do last-minute shopping. 
 
 ```{r outside attractions,  include=TRUE, echo = TRUE, message = FALSE, warning = FALSE, results='hide'}
 unesco <-
@@ -1032,6 +1049,9 @@ table.distance %>%
       theme(legend.position = "none")
 ```
 
+Similar to internal amenities, we drew box plots for external amenities. We compared price of Airbnb that has particular amenities within the 1km walkable distance, versus without those amenities in close proximity. We can see that apart from beach, nightclubs, and parks, all five other factors seem to make a difference when it comes to determining Airbnb price. 
+
+
 ```{r}
 
 
@@ -1044,6 +1064,8 @@ annualrevenue <-
 
 
 # Feature Review: Correlation Matrix
+
+The correlation matrix below is a quick check-up on whether our factors are correlated to each other. If they are, we will choose one to include in model and the other(s) to disregard. Apart from beds and bedrooms, all other factors seem to be fine to be included in the model simultaneously. 
 
 ```{r numeric correlation matrix, fig.width=6.4, fig.height=6.0, include=TRUE, echo = TRUE, message = FALSE, warning = FALSE}
 numericVars <- 
@@ -1063,9 +1085,11 @@ ggcorrplot(
 
 # Regression Model
 
-We are using linear regression model for this machine learning task. 
+We are using linear regression OLS model for this machine learning task. 
 
 ## Data Split: Testing & Training
+
+To train and test our model, we are splitting the existing data into 60% for training and 40% for testing. Since several neighborhoods only have 1 Airbnb in the area, we are keeping those data in the training set to avoid errors. However, we are aware that this results more neighbors having NAs.
 
 ```{r annual revenue regression, include=TRUE, echo = TRUE, message = FALSE, warning = FALSE}
 annualrevenue <- merge(annualrevenue,listing.sf.neighbor2[c("id", "Buurt")], by = "id")
@@ -1086,6 +1110,8 @@ annualrevenue.test     <- st_drop_geometry(annualrevenue)[-inTrain,]
 
 ## Regression Results
 
+The long table below shows the regression results from our model. The model has $R^2$ of 0.426 and most of the features we included appear to be significant. Although 0.426 may not be a high model for price prediction, we want to acknowledge the fact that Airbnb price may be more subjective, fluctuating, and unstable than house prices due to many unforeseeable factors. 
+
 ```{r}
 
 reg.annualrevenue <- lm(price ~ ., data = st_drop_geometry(annualrevenue) %>% 
@@ -1103,6 +1129,10 @@ stargazer(reg.annualrevenue,
           out.header = TRUE)
 
 ```
+
+## MAPE (Mean Absolute Percentage Error)
+
+By comparing the predicted price and actual price of our testing set, we summarized the errors in the table and map down below. Our model has a mean absolute percentage error of 29%, and it seems to be doing a better job in the central area than peripheral areas. As we will show in the following section, our model's general predictibility is higher in central areas, given the abundance of existing data concentrating in that area.
 
 ```{r annual revenue regression summ, include=TRUE, echo = TRUE, message = FALSE, warning = FALSE}
 
@@ -1122,7 +1152,7 @@ test_result %>%
   kable_styling("striped", full_width = F)
 ```
 
-## MAPE (Mean Absolute Percentage Error)
+
 
 ```{r  annual revenue regression plot by Buurt, include=TRUE, echo = TRUE, message = FALSE, warning = FALSE}
 palette5 <- c("#ffffd4", "#fed98e", "#fe9929", "#d95f0e", "#993404")
@@ -1244,8 +1274,9 @@ Low_Count_Boundary <-
 
 # Conclusion
 
-In conclusion, our model gives a decent prediction for airbnb price in Amsterdam, although for it to be implemented, we would need more upgrades and feature engineering. From the results of cross validation, our model is better predicting price in areas with higher concentration of existing Airbnb in comparison to lower density areas, given the fact that more existing data is provided. 
+In conclusion, our model gives a decent prediction for airbnb price in Amsterdam, although for it to be launched for our users, new hosts in Amsterdam, we would need more upgrades and feature engineering. From the results of cross validation, our model is better predicting price in areas with higher concentration of existing Airbnb in comparison to lower density areas, given the fact that more existing data is provided. We hope to improve this model / app and launch it for new hosts to utilize and better price their units in the near future. We will come insightful comments and feedback from Amsterdam locals. 
 
+In addition, as this report demonstrate, many features incorporated in this model are linked specifically to Amsterdam, such as property type (given Amsterdam's boat house and other interesting architectural types) and specific amenities (such as fireplaces). At this stage, we are refraining from attempting to apply this model to other cities around the world. At the end of the day, each city (especially cities famous for tourism) have their unique selling points that attract tourists, and that is the reason why tourism and Airbnb exist in the first place. 
 
-
+While our model is primarily built for new hosts, some of the analysis included in this report would also be helpful for policy makers as risk assessment. Although it is reasonable to try to develop all areas in the city, simply banning short-term rental in central areas may be detrimental to tourism yet not benefiting the peripheral areas of the city. By transforming this price-prediction model into a risk-prediction model, policy-makers will have more insights on which areas are potentially exploiting short-term rental. Policy-makers and planners can also work together to install amenities that are favorable by tourists, such as public transit and convenience shops, to direct flow of tourists to certain areas. In sum, information in this report could be helpful to policy makers as well. 
 
