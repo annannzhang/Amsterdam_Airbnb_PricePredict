@@ -21,7 +21,7 @@ knitr::opts_chunk$set(echo = TRUE, quiet = TRUE, warning=FALSE)
 
 Please refer to our presentation video for executive summary of this project/app!
 
-https://youtu.be/6dixtgleyY0
+https://youtu.be/Xr2tM-RtyQQ
 
 
 # Background Information -- Amsterdam Airbnb Market
