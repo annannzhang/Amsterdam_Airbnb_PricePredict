@@ -392,7 +392,7 @@ Firstly, identifying 'hotspots' would be helpful to have an overview of the Airb
 
 Given city government's concern with too many Airbnb (short-term rental) concentrating in central historic areas, the maps below also help demonstrating how the market indeed is crammed in the central area. 
 
-We choose to examin the distrbution at two scales -- neighborhood (identified by City of Amsterdam) and zipcode areas (smaller scale). Both maps show that many Airbnb are located along the canals, which is usually deemed signature of Amsterdam. 
+We choose to examine the distribution at two scales -- neighborhood (identified by City of Amsterdam) and zip code areas (smaller scale). Both maps show that many Airbnb are located along the canals, which is usually deemed signature of Amsterdam. 
 
 
 ```{r plot the number of airbnb, fig.width=6.4, fig.height=6.0, include=TRUE, echo = TRUE, message = FALSE, warning = FALSE}
@@ -442,6 +442,7 @@ neighbor2 %>% ggplot() +
 
 ### Seasonality
 
+The plot below shows the relationship between seasonality and price -- we see an annual low in the beginning of the year in Jan and Feb, and a quick incline as spring comes, hitting high points in the summer, than slowly declines as weather gets colder into fall and winter. The price seems to follow the general trend of tourism in Amsterdam. 
 
 ```{r price change, fig.width=8, fig.height=3.8, include = TRUE, echo=TRUE, warning= FALSE, message=FALSE}
 Month_price <- calendar%>%
@@ -466,6 +467,8 @@ ggplot(Month_price,
 
 ### Price per Bed
 
+Since each Airbnb varies in size and number of guests it can accommodate, we choose to visualize price per bed to make a better sense of the price in the market. A bed usually can accommodate 2 guests maximum, though in some case can host up to 3 guests. Again, the higher priced bed are concentrated in the central areas.
+
 ```{r plot price per bed, fig.width=6.4, fig.height=6.0, include=TRUE, echo = TRUE, message = FALSE, warning = FALSE}
 details.sf <- 
   details.sf %>% 
@@ -485,6 +488,9 @@ ggplot()+
 ```
 
 ## 3) Occupancy
+
+While location and price are helpful information, we shall not disregard an important indicator of actual profit -- occupancy. From the existing data, we can see that occupancy is lower in the beginning of the year, then continues to be high year-round. However, it is important to acknowledge the fact that Feburary only has 28 (or 29) days, which may result in lower occupancy count. 
+
 
 ```{r occupancy, fig.width=8, fig.height=3.8, include = TRUE, echo=TRUE, warning=FALSE, message=FALSE}
 index <- function(x, flag = '0') {
@@ -517,6 +523,8 @@ ggplot(monthly_occupancy,
 
 ## 4) Composition / Characteristics
 
+Move on to internal features of the units -- number of beds, bedrooms, bathrooms, and number of guests it may accommodate -- are all fundamentals for determining a unit's price (and directly associated with guests; willingness to pay). In addition, since Amsterdam has a long history of having boat house and all kinds of special types of houses, tourists may be in favor of experiencing those kinda of accommodation. Hence, we did a thorough examination of all those features and their aggregated effect. 
+
 ### Room Layout
 
 ```{r basic features, include=TRUE, echo = TRUE, message = FALSE, warning = FALSE}
@@ -545,6 +553,10 @@ count(details.sf$property_type) %>%
 
 ### Puting them together...
 
+After examining individual internal features, we put together the table below to show average price for each combination of all those features. We can see that even with the same number of beds, bathrooms, bedrooms, and no. of accommodating guests, property_type may be a determinant for price. 
+
+We have decided to include all those internal features into our machine learning model since they appear to be valid factors. 
+
 ```{r include=TRUE}
 
 details.sf %>%
@@ -558,6 +570,8 @@ details.sf %>%
 ```
 
 ## 5) Amenities
+
+Rooms amenities are also important. Whether your unit comes with a pool, parking space, fireplace, kitchen, or close to waterfront could largely change tourists' staying experience. Hence, we look at all the individual amenities and their effect on price. 
 
 ```{r amenities, include=TRUE, echo = TRUE, message = FALSE, warning = FALSE}
 #pool
@@ -611,6 +625,9 @@ plotList[[i]] <-
 
 do.call(grid.arrange,c(plotList, ncol = 3, top = "Price w/ vs. w/o Amenities"))
 ```
+
+From the box plot above, we can tell that fireplace, waterfront, pool, and kitchen seem to have a decent influence on price, while parking and AC have subtle effect. Since Amsterdam is usually cool in the summer and chilly in winter, it makes sense why AC maybe less appealing than fireplace. We 
+
 
 ### Aggregated Amenities:
 
