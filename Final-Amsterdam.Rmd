@@ -1,7 +1,7 @@
 ---
-title: "MUSA 508 Final - Amsterdam"
+title: "Model Host: Airbnb Price Predictions for hosts off the beaten path"
 author: 'Ben Keel, Yuhao Sun & Ann (Zian) Zhang'
-date: "2022/12/06"
+date: "2022/12/16"
 output: 
   html_document:
     theme: lumen
@@ -14,7 +14,7 @@ output:
 ```{r setup, include=FALSE, message = FALSE,warning = FALSE, echo = FALSE}
 knitr::opts_chunk$set(echo = TRUE, quiet = TRUE, warning=FALSE)
 ```
-![Amsterdam's Canels, Wikipedia.](https://en.wikipedia.org/wiki/Amsterdam#/media/File:KeizersgrachtReguliersgrachtAmsterdam.jpg)
+![Amsterdam Apartment, iamsterdam.com](https://www.iamsterdam.com/media/canals-and-cityscapes/sarphatipark-amsterdam-housescc-bysa-40-milliped-via-wikimedia-commons.jpg)
 
 
 # Presentation - Youtube Link
@@ -99,69 +99,6 @@ palette2 <- c("#FA8072","#9FE2BF")
 Teal <- c("#d1eeea", "#a8dbd9", "#85c4c9", "#68abb8", "#4f90a6")
 Purple <- c("#f3e0f7", "#e4c7f1", "#d1afe8", "#b998dd", "#9f82ce")
 Pink <- c("#ffffff","#f9f4f4","#f0e4e4", "#e7d3d3", "#dec3c3")
-
-qBr <- function(df, variable, rnd) {
-  if (missing(rnd)) {
-    as.character(quantile(round(df[[variable]],0),
-                          c(.01,.2,.4,.6,.8), na.rm=T))
-  } else if (rnd == FALSE | rnd == F) {
-    as.character(formatC(quantile(df[[variable]]), digits = 3),
-                 c(.01,.2,.4,.6,.8), na.rm=T)
-  }
-}
-
-qBr2 <- function(df, variable, rnd) {
-  if (missing(rnd)) {
-    as.character(round(quantile(round(df[[variable]],0),
-                          c(.01,.2,.4,.6,.8), na.rm=T)))
-  } else if (rnd == FALSE | rnd == F) {
-    as.character(round(formatC(quantile(round(df[[variable]]), 0)),
-                 c(.01,.2,.4,.6,.8), na.rm=T))
-  }
-}
-
-q5 <- function(variable) {as.factor(ntile(variable, 5))}
-
-plotTheme <- function(base_size = 12) {
-  theme(
-    text = element_text( color = "black"),
-    plot.title = element_text(size = 14,colour = "black"),
-    plot.subtitle = element_text(face="italic"),
-    plot.caption = element_text(hjust=0),
-    axis.ticks = element_blank(),
-    panel.background = element_blank(),
-    panel.grid.major = element_line("grey80", size = 0.1),
-    panel.grid.minor = element_blank(),
-    panel.border = element_rect(colour = "black", fill=NA, size=2),
-    strip.background = element_rect(fill = "grey80", color = "white"),
-    strip.text = element_text(size=12),
-    axis.title = element_text(size=12),
-    axis.text = element_text(size=10),
-    plot.background = element_blank(),
-    legend.background = element_blank(),
-    legend.title = element_text(colour = "black", face = "italic"),
-    legend.text = element_text(colour = "black", face = "italic"),
-    strip.text.x = element_text(size = 14)
-  )
-}
-
-mapTheme <- theme(plot.title =element_text(size=12),
-                  plot.subtitle = element_text(size=8),
-                  plot.caption = element_text(size = 8),
-                  axis.line=element_blank(),
-                  axis.text.x=element_blank(),
-                  axis.text.y=element_blank(),
-                  axis.ticks=element_blank(),
-                  axis.title.x=element_blank(),
-                  axis.title.y=element_blank(),
-                  panel.background=element_blank(),
-                  panel.border = element_rect(colour = "black", fill=NA, size=2),
-                  panel.grid.major=element_line(colour = 'grey92'),
-                  panel.grid.minor=element_blank(),
-                  legend.direction = "vertical", 
-                  legend.position = "right",
-                  plot.margin = margin(1, 1, 1, 1, 'cm'),
-                  legend.key.height = unit(1, "cm"), legend.key.width = unit(0.2, "cm"))
 
 ```
 
@@ -259,9 +196,9 @@ html_to_text<-function(url){
 #calendar <- read.csv("calendar.csv")
 
 
-details <- read.csv("/Users/annzhang/Downloads/archive/listings_details.csv")
-listings <- read.csv("/Users/annzhang/Downloads/archive/listings.csv")
-calendar <- read.csv("/Users/annzhang/Downloads/archive/calendar.csv")
+details <- read.csv("D:/MUSAFall/MUSA_508/508_Amsterdam_Non-Git/listings_details.csv")
+listings <- read.csv("D:/MUSAFall/MUSA_508/508_Amsterdam_Non-Git/listings.csv")
+calendar <- read.csv("D:/MUSAFall/MUSA_508/508_Amsterdam_Non-Git/calendar.csv")
 
 
 #large neighborhood
@@ -794,9 +731,8 @@ details.sf.c.MetroRings <-
 
 #Adding the variable to the data set
 details.sf <- 
-  left_join(details.sf, details.sf.c.MetroRings %>% st_drop_geometry() %>% dplyr::select(metro.dist, id), by="id") %>%
-  dplyr::rename(metro.dist = distance)
-  
+  left_join(details.sf, details.sf.c.MetroRings %>% st_drop_geometry() %>% dplyr::select(metro.dist, id), by="id")
+
 #FOR VIS ONLY: Creating a summary table of the ring data 
 details.Rings.Summary <- details.sf.c.MetroRings %>%
   dplyr::select(metro.dist, price)%>%
