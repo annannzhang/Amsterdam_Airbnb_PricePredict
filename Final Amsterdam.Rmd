@@ -14,20 +14,20 @@ output:
 ```{r setup, include=FALSE, message = FALSE,warning = FALSE, echo = FALSE}
 knitr::opts_chunk$set(echo = TRUE, quiet = TRUE, warning=FALSE)
 ```
+![Amsterdam's Canels, Wikipedia.](https://en.wikipedia.org/wiki/Amsterdam#/media/File:KeizersgrachtReguliersgrachtAmsterdam.jpg)
+
 
 # Presentation - Youtube Link
 
-Please refer to our presentation video for executive summary of this project/app. 
+Please refer to our presentation video for executive summary of this project/app!
 
 https://youtu.be/6dixtgleyY0
 
 
 # Background Information -- Amsterdam Airbnb Market
 
+As identified in our video, Amsterdam as a world-class tourism city greets millions of tourists from all over the world. This markdown goes through the technical asspects 
 
-
-
-(embed several photos?)
 
 # Data Source
 
@@ -629,7 +629,6 @@ details.sf <- details.sf %>%
 In addition to internal features that we examined earlier, we also want to take some external factors that are critical for tourists into considerations -- the neighborhood (area), distance to public transit stops, and distance to some tourists attractions (e.g. museums) and external amenities (supermarkets and convenience shops). As tourists can benefit a lot from close proximity to sites they want to visit or amenities, the price may go up for those units that are closer to those places. 
 
 
-
 ## New Feature 1: Spatial Lag & Neighborhood Effect
 
 ### Neighborhood Effect
@@ -1106,7 +1105,7 @@ test_result %>%
   kable_styling("striped", full_width = F)
 ```
 
-
+## MAPE (Mean Absolute Percentage Error)
 
 ```{r  annual revenue regression plot by Buurt, include=TRUE, echo = TRUE, message = FALSE, warning = FALSE}
 palette5 <- c("#ffffd4", "#fed98e", "#fe9929", "#d95f0e", "#993404")
@@ -1178,16 +1177,58 @@ st_drop_geometry(error_by_reg_and_fold) %>%
 
 ```
 
-From the LOGO-CV result, 
+From the LOGO-CV result, our mean absolute error is 25.1 euro, with a 23.77 euro standard deviation. This means that on average our prediction could be 25.1 euro off, higher or lower. Given our predictability being ~42%, this is an expected and acceptable error to be observed.
+
+Since earlier we observed a clustering in central areas, we are curious to see how our model performs in areas with more existing Airbnb vs. less. Hence we split neighborhoods into those with more than 50 Airbnb vs. less than 50, checked the respective mean absolute error for the high vs. low count groups, then plotted the mean error in each neighborhood. 
+
 
 ```{r}
+#Counting per neighborhood
+neighbourhoodCount <- annualrevenue %>%
+  dplyr::count(Buurt)
 
-  ggplot() + 
-  geom_sf(data=amsterdam.boundary, color='white') +
-  geom_sf(data=error_by_reg_and_fold, aes(color=Mean_error)) +
-  scale_color_gradient(low = '#91bfdb', high = '#fc8d59', name = "Mean Error") +
-  labs(title = "Mean Error (LOGO-CV)", subtitle = "Amsterdam, NL") + mapTheme()
+#Joining to new spatial db
+neighbourhoodHL <- neighbor2 %>%
+  left_join(st_drop_geometry(neighbourhoodCount), by = "Buurt")%>%
+  mutate(Airbnb1k = ifelse(n < 50, "Low", "High"))
 
+#spatial join of the essential comparison data
+st_join(error_by_reg_and_fold, neighbourhoodHL) %>% #fill in data frame with error column here
+  group_by(Airbnb1k) %>%
+  dplyr::summarize(mean.MAE = scales::percent(mean(MAE, na.rm = T))) %>% #fill in error column here
+  st_drop_geometry() %>%
+  spread(Airbnb1k, mean.MAE) %>%
+  kable(caption = "<strong>Test set MAE within Neighborhoods Above or Below 50 Listings </strong>")%>%
+  kable_styling()
+```
+
+The mean absolute error in area with higher count of Airbnb is significantly lower than the area with lower count, according to the data. The map below has lower-count areas in grey shade. By comparing shaded (lower count) to unshaded (higher count) areas, we can see that the shaded areas have more variation while the unshaded areas have mean errors closer to zero -- suggesting a better performance in higher count area. 
+
+```{r}
+colnames(error_by_reg_and_fold)[1] = "Buurt"
+
+new <-
+  neighbor2 %>% dplyr::select(Buurt, geometry) %>%
+  left_join(st_drop_geometry(error_by_reg_and_fold), by = 'Buurt')
+  
+
+Low_Count_Boundary <-
+  st_union(neighbourhoodHL %>% filter(Airbnb1k == 'Low'))
+
+  ggplot() +
+  geom_sf(data=new, aes(fill=Mean_error), size=0.3) +
+  scale_fill_gradient(low = '#91bfdb', high = '#fc8d59', na.value = 'white', name = "Mean Error") +
+  labs(title = "Mean Error (LOGO-CV)", subtitle = "Amsterdam, NL") + 
+  geom_sf(data=Low_Count_Boundary, color="black", fill = mycol, size=0.7) + mapTheme() 
+
+
+  mycol <- rgb(220,220,220, max = 255, alpha = 90, names = "blue50")
 ```
 
 # Conclusion
+
+In conclusion, our model gives a decent prediction for airbnb price in Amsterdam, although for it to be implemented, we would need more upgrades and feature engineering. From the results of cross validation, our model is better predicting price in areas with higher concentration of existing Airbnb in comparison to lower density areas, given the fact that more existing data is provided. 
+
+
+
+
