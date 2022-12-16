@@ -283,7 +283,7 @@ length(unique(calendar$listing_id))
 length(unique(calendar$listing_id))*12
 ```
 
-```{r deal with panel, include=TRUE, echo = TRUE, message = FALSE, warning = FALSE}
+```{r deal with panel, include=TRUE, echo = TRUE, message = FALSE, warning = FALSE, cache=TRUE}
 study.panel <- 
   expand.grid(listing_id = unique(calendar$listing_id),
               month=unique(available_calendar2$month))
@@ -790,7 +790,7 @@ museum <- attraction %>%
 
 ```
 
-```{r outside amenities , include=TRUE, echo = TRUE, message = FALSE, warning = FALSE}
+```{r outside amenities , include=TRUE, echo = TRUE, message = FALSE, warning = FALSE, cache=TRUE}
 
 #supermarkets
 supermarkets <- getbb('Amsterdam') %>% 
@@ -1172,7 +1172,7 @@ From the LOGO-CV result, our mean absolute error is 25.1 euro, with a 23.77 euro
 Since earlier we observed a clustering in central areas, we are curious to see how our model performs in areas with more existing Airbnb vs. less. Hence we split neighborhoods into those with more than 50 Airbnb vs. less than 50, checked the respective mean absolute error for the high vs. low count groups, then plotted the mean error in each neighborhood. 
 
 
-```{r}
+```{r message=FALSE, warning=FALSE}
 #Counting per neighborhood
 neighbourhoodCount <- annualrevenue %>%
   dplyr::count(Buurt)
@@ -1180,7 +1180,8 @@ neighbourhoodCount <- annualrevenue %>%
 #Joining to new spatial db
 neighbourhoodHL <- neighbor2 %>%
   left_join(st_drop_geometry(neighbourhoodCount), by = "Buurt")%>%
-  mutate(Airbnb1k = ifelse(n < 50, "Low", "High"))
+  mutate(Airbnb1k = ifelse(n < 50, "Low", "High"))%>%
+  st_transform(st_crs(error_by_reg_and_fold))
 
 #spatial join of the essential comparison data
 st_join(error_by_reg_and_fold, neighbourhoodHL) %>% #fill in data frame with error column here
@@ -1194,7 +1195,7 @@ st_join(error_by_reg_and_fold, neighbourhoodHL) %>% #fill in data frame with err
 
 The mean absolute error in area with higher count of Airbnb is significantly lower than the area with lower count, according to the data. The map below has lower-count areas in grey shade. By comparing shaded (lower count) to unshaded (higher count) areas, we can see that the shaded areas have more variation while the unshaded areas have mean errors closer to zero -- suggesting a better performance in higher count area. 
 
-```{r}
+```{r message=FALSE, warning=FALSE}
 colnames(error_by_reg_and_fold)[1] = "Buurt"
 
 new <-
@@ -1205,14 +1206,15 @@ new <-
 Low_Count_Boundary <-
   st_union(neighbourhoodHL %>% filter(Airbnb1k == 'Low'))
 
-  ggplot() +
-  geom_sf(data=new, aes(fill=Mean_error), size=0.3) +
+ mycol <- rgb(220,220,220, max = 255, alpha = 90, names = "blue50")
+
+ggplot() +
+  geom_sf(data=new, aes(fill=Mean_error), color=NA) +
   scale_fill_gradient(low = '#91bfdb', high = '#fc8d59', na.value = 'white', name = "Mean Error") +
   labs(title = "Mean Error (LOGO-CV)", subtitle = "Amsterdam, NL") + 
   geom_sf(data=Low_Count_Boundary, color="black", fill = mycol, size=0.7) + mapTheme() 
 
 
-  mycol <- rgb(220,220,220, max = 255, alpha = 90, names = "blue50")
 ```
 
 # Conclusion
