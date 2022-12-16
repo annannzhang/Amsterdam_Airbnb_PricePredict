@@ -23,6 +23,15 @@ knitr::opts_chunk$set(echo = TRUE, quiet = TRUE, warning=FALSE)
 
 # Data Source
 
+We acquired data from several reliable sources:
+
+Airbnb Data (including price, location, amenities, room compositions, etc.) is acquired from Kaggle, a platform for sharing data set particularly for machine learning. This contains airbnb data in Amsterdam from 2017 December to 2018 December (hence, primarily data for the year of 2018). Although due to the pandemic, tourism in Amsterdam might have undergone changes and variation, this is the best possible data we have available, and we believe it would produce some insights. 
+(https://www.kaggle.com/datasets/erikbruin/airbnb-amsterdam?select=listings.csv)
+
+Neighborhood and surrounding amenities data is acquired from City of Amsterdam's online geo data portal, 'Maps Data.' (https://maps.amsterdam.nl/open_geodata/?LANG=en)
+
+In addition, we supplemented data about tourist attrations from 'Tourpedia,' an online data portal with tourism-related data of several European cities. (http://tour-pedia.org/about/datasets.html)
+
 ```{r Load R packages, include=TRUE, echo = TRUE, message = FALSE, warning = FALSE}
 
 source("https://raw.githubusercontent.com/urbanSpatial/Public-Policy-Analytics-Landing/master/functions.r")
@@ -295,6 +304,8 @@ details.sf.raw <- details.sf
 
 # Exploratory Analysis
 
+Since the Airbnb data already contains a lot of information (hiding many secrets!), we will first conduct exploratory analysis by examining location (geographic distribution) of available units, price per night, occupancy, room characteristics (composition, layout), and amenities that come with the room. Looking into those aspects can help our clients, future Airbnb host, to quickly identify internal characteristics of their unit and set price. It may also help those hosts who wish to upgrade their units figure out a potential increase in price after the upgrade. 
+
 ```{r price panel, include=TRUE, echo = TRUE, message = FALSE, warning = FALSE}
 # Available Calendar
 available_calendar <- calendar %>%
@@ -394,7 +405,7 @@ neighbor2 <- left_join(neighbor2,neighbo2.count,by="Buurt")
 
 ggplot()+
   geom_sf(data = neighbor2, aes(fill=q5(airbnb.number)),color='transparent')+
-  scale_fill_manual(values = Pink,
+  scale_fill_manual(values = Teal,
                      labels = qBr(neighbor2,'airbnb.number'), name = 'Count')+
   labs(title = "Number of Airbnb per Neighborhood", subtitle = "Amsterdam, NL; 2018") +
   mapTheme()
@@ -405,7 +416,7 @@ ggplot()+
 
 neighbor2 %>% ggplot() + 
       geom_sf(aes(fill = airbnb.number), color = 'white') +
-      scale_fill_gradient(low = Purple[1], high = Purple[5],
+      scale_fill_gradient(low = Teal[1], high = Teal[5],
                           name = "Count") +
       labs(title = "Number of Airbnb per Zipcode", subtitle = "Amsterdam, NL; 2018") +
       mapTheme()
@@ -729,10 +740,8 @@ st_crs(metro) <- st_crs(listings.sf)
 
 st_c <- st_coordinates
 
-details.sf.c <- details.sf%>%
-  st_transform('ESRI:102013') %>%
-  dplyr::select(geometry) %>%
-  na.omit
+details.sf.c <- details.sf %>%
+  st_transform('ESRI:102013') 
 
 metro.c <- metro%>%
   st_transform('ESRI:102013') 
@@ -761,14 +770,14 @@ details.sf.c.MetroRings <-
   st_join(dplyr::select(details.sf.c, id),
           Metro_MRB) %>%
   st_drop_geometry() %>% 
-  left_join(details.sf.c, #put the regression dataset here
+  left_join(details.sf.c, annualrevenue,
             by="id") %>%
   st_sf()%>%
   mutate(metro.dist = distance/1000)
 
 #Adding the variable to the data set
 details.sf <- 
-  left_join(details.sf, st_drop_geometry(dplyr::select(details.sf.c.MetroRings, distance, id)), by="id")%>%
+  left_join(details.sf, details.sf.c.MetroRings %>% st_drop_geometry() %>% dplyr::select(metro.dist, id), by="id") %>%
   dplyr::rename(metro.dist = distance)
   
 #FOR VIS ONLY: Creating a summary table of the ring data 
@@ -779,15 +788,25 @@ details.Rings.Summary <- details.sf.c.MetroRings %>%
   dplyr::summarize(Price=median(price, na.rm=T))
 
 #FOR VIS ONLY: Line Plot of the summary table 
-ggplot(data=details.Rings.Summary, aes(x=distance, y=Price),)+
+ggplot(data=details.Rings.Summary, aes(x=metro.dist, y=Price),)+
   geom_line(size=1.5)+
   geom_point(size = 3)+  
   labs(title = "Price as a Function of Distance from a Metro Station", 
-       subtitle = "Amsterdam Airbnb Data, ", 
+       subtitle = "Amsterdam Airbnb Data, 2018", 
        x="Distance from a Metro Station (KM)",
-       y="Rent (2018 USD)")+
+       y="Rent (2018 Euro)")+
   theme(plot.title = element_text(size=18))
 ```
+
+```{r}
+
+annualrevenue <-
+  annualrevenue %>%
+  left_join(details.sf.c.MetroRings %>% st_drop_geometry %>% dplyr::select(metro.dist, id), by = 'id')
+
+```
+
+
 
 ## New Feature 3: Proximity to Tourist Amenities
 
@@ -798,7 +817,7 @@ numericVars <-
   select_if(st_drop_geometry(annualrevenue), is.numeric) %>% na.omit() %>% 
   dplyr::select(annual_revenue,price,beds, bedrooms, bathrooms, 
                               minimum_nights,
-                              amenities.number)
+                              amenities.number, metro.dist)
 
 ggcorrplot(
   round(cor(numericVars), 1), 
@@ -834,14 +853,12 @@ annualrevenue.test     <- st_drop_geometry(annualrevenue)[-inTrain,]
 
 ```{r}
 
-
-#regression without distance thingy
 reg.annualrevenue <- lm(price ~ ., data = st_drop_geometry(annualrevenue) %>% 
              dplyr::select(price, beds, bedrooms, bathrooms, accommodates,
                               pool, parking, kitchen, AC, fireplace,
                               room_type,property_type,bed_type, Buurt,
                               minimum_nights,
-                              amenities.number,lagRevenue)) 
+                              amenities.number,lagRevenue, metro.dist)) 
 
 stargazer(reg.annualrevenue,
           type = "text",
