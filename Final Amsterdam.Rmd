@@ -24,7 +24,12 @@ knitr::opts_chunk$set(echo = TRUE, quiet = TRUE, warning=FALSE)
 
 (embed several photos?)
 
+
+
 # Data Source 
+
+
+
 
 ```{r Load R packages, include=TRUE, echo = TRUE, message = FALSE, warning = FALSE}
 
@@ -303,7 +308,7 @@ details.sf.raw <- details.sf
 
 # Exploratory Analysis
 
-Panels
+
 
 ```{r price panel, include=TRUE, echo = TRUE, message = FALSE, warning = FALSE}
 # Available Calendar
@@ -381,11 +386,14 @@ no_price <- unique(listing_0price$listing_id)
 no_price
 ```
 
+
+
 ```{r drop NA listings, include=FALSE, echo = TRUE, message = FALSE, warning = FALSE}
 #Filter data with no price
 listing_panel <- listing_panel %>%
   filter(!listing_id %in% no_price)
 ```
+
 
 ## 1) Geographic Distribution 
 
